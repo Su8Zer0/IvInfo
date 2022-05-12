@@ -1,0 +1,14 @@
+{
+  "category": "Metadata",
+  "changelog": "",
+  "description": "IV video info metadata provider",
+  "guid": "abe0c619-a145-4890-896b-cb1089ade4fe",
+  "name": "IVInfo",
+  "overview": "",
+  "owner": "",
+  "targetAbi": "10.7.7.0",
+  "timestamp": "0001-01-01T00:00:00.0000000Z",
+  "version": "0.0.0.1",
+  "status": "Active",
+  "autoUpdate": false
+}
