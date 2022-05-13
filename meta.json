@@ -1,14 +1,14 @@
 {
   "category": "Metadata",
-  "changelog": "",
-  "description": "IV video info metadata provider",
+  "changelog": "first stable version",
+  "description": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
   "guid": "abe0c619-a145-4890-896b-cb1089ade4fe",
-  "name": "IVInfo",
-  "overview": "",
-  "owner": "",
+  "name": "IvInfo",
+  "overview": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
+  "owner": "SubZeroPL",
   "targetAbi": "10.7.7.0",
-  "timestamp": "0001-01-01T00:00:00.0000000Z",
-  "version": "0.0.0.1",
+  "timestamp": "2022-05-13T00:00:00.0000000Z",
+  "version": "1.0.0.0",
   "status": "Active",
-  "autoUpdate": false
+  "autoUpdate": true
 }
