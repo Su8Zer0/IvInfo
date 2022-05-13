@@ -248,7 +248,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         }
 
         /// <summary>
-        /// Returns result page for specific scraper id.
+        /// Returns result page for specific scraper id or empty page if not found.
         /// </summary>
         /// <param name="scraperId">scraper id</param>
         /// <returns>page for id</returns>
