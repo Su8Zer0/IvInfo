@@ -1,0 +1,29 @@
+name: Build new version
+
+on:
+  push:
+    tags:
+    - v*
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 5.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+    - name: Upload zip artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: Jiggle-x86.exe
+        path: Jellyfin.Plugin.IvInfo/bin/Release/net5.0/publish/Jellyfin.Plugin.IvInfo.dll
