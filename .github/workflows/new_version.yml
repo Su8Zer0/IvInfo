@@ -25,7 +25,7 @@ jobs:
       run: dotnet build --no-restore --configuration Release
     - name: Get version
       id: get_version
-      run: echo "::set-output name=version::$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo\Jellyfin.Plugin.IvInfo\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)"
+      run: echo "::set-output name=version::$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)"
       shell: pwsh
     - name: Copy files
       run: |
