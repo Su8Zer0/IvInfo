@@ -22,7 +22,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore --configuration Release
+      run: dotnet publish --no-restore --configuration Release
     - name: Get version
       id: get_version
       run: echo "::set-output name=version::$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)"
@@ -32,8 +32,8 @@ jobs:
         pwd && ls && ls bin && ls bin/Release && ls bin/Release/net5.0 &&
         mkdir -p release${{ steps.get_version.outputs.version }} &&
         cd release${{ steps.get_version.outputs.version }} &&
-        cp bin/Release/net5.0/Jellyfin.Plugin.IvInfo.dll ./ &&
-        cp bin/Release/net5.0/HtmlAgilityPack.dll ./ &&
+        cp ./bin/Release/net5.0/publish/Jellyfin.Plugin.IvInfo.dll ./ &&
+        cp ./bin/Release/net5.0/publish/HtmlAgilityPack.dll ./ &&
         pwd && ls
     - name: Zip Release
       uses: thedoctor0/zip-release@master
