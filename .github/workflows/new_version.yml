@@ -57,9 +57,9 @@ jobs:
         shell: pwsh
       - name: Generate changelog
         id: changelog
-        uses: metcalfc/changelog-generator@v1.0.0
+        uses: heinrichreimer/github-changelog-generator-action@v2.3
         with:
-          myToken: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Download build
         id: download_artifacts
         uses: actions/download-artifact@v2
