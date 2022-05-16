@@ -63,9 +63,9 @@ jobs:
           path: release
       - name: Generate changelog
         id: changelog
-        uses: timfallmk/github-changelog-generator-action@0.0.2
+        uses: endaft/action-changelog@v0.0.2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
