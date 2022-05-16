@@ -63,7 +63,7 @@ jobs:
           path: release
       - name: Generate changelog
         id: changelog
-        uses: heinrichreimer/action-github-changelog-generator@v2.3
+        uses: timfallmk/github-changelog-generator-action@0.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Release
