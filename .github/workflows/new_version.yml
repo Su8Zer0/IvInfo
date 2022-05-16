@@ -38,6 +38,7 @@ jobs:
       uses: thedoctor0/zip-release@master
       with:
         type: 'zip'
+        directory: release_${{ steps.get_version.outputs.version }}/
         filename: 'release_${{ steps.get_version.outputs.version }}.zip'
     - name: Upload zip artifact
       uses: actions/upload-artifact@v2
@@ -52,7 +53,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Get version
         id: get_version
-        run: echo "::set-output name=version::$((Select-Xml -Path .\Jiggle\Jiggle.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)"
+        run: echo "::set-output name=version::$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)"
         shell: pwsh
       - name: Generate changelog
         id: changelog
