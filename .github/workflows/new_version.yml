@@ -33,6 +33,7 @@ jobs:
         cd release${{ steps.get_version.outputs.version }} &&
         cp ../bin/Release/net5.0/publish/Jellyfin.Plugin.IvInfo.dll ./ &&
         cp ../bin/Release/net5.0/publish/HtmlAgilityPack.dll ./ &&
+        cd ..
         pwd && ls
     - name: Zip Release
       uses: thedoctor0/zip-release@master
