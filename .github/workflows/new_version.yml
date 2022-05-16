@@ -55,11 +55,6 @@ jobs:
         id: get_version
         run: echo "::set-output name=version::$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)"
         shell: pwsh
-      - name: Generate changelog
-        id: changelog
-        uses: endaft/action-changelog@v0.0.3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Download build
         id: download_artifacts
         uses: actions/download-artifact@v2
