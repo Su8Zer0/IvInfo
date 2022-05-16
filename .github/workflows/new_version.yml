@@ -29,6 +29,7 @@ jobs:
       shell: pwsh
     - name: Copy files
       run: |
+        pwd && ls &&
         mkdir -p release${{ steps.get_version.outputs.version }} &&
         cd release${{ steps.get_version.outputs.version }} &&
         cp Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo/bin/Release/net5.0/publish/Jellyfin.Plugin.IvInfo.dll ./ &&
