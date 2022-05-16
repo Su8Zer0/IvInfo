@@ -29,21 +29,63 @@ jobs:
       shell: pwsh
     - name: Copy files
       run: |
-        mkdir -p release${{ steps.get_version.outputs.version }} &&
-        cd release${{ steps.get_version.outputs.version }} &&
+        mkdir -p release_${{ steps.get_version.outputs.version }} &&
+        cd release_${{ steps.get_version.outputs.version }} &&
         cp ../bin/Release/net5.0/publish/Jellyfin.Plugin.IvInfo.dll ./ &&
         cp ../bin/Release/net5.0/publish/HtmlAgilityPack.dll ./ &&
-        cd ..
         pwd && ls
     - name: Zip Release
       uses: thedoctor0/zip-release@master
       with:
         type: 'zip'
-        filename: 'release${{ steps.get_version.outputs.version }}.zip'
-        path: release${{ steps.get_version.outputs.version }}/
-        directory: release${{ steps.get_version.outputs.version }}/
+        filename: 'release_${{ steps.get_version.outputs.version }}.zip'
     - name: Upload zip artifact
       uses: actions/upload-artifact@v2
       with:
-        name: release${{ steps.get_version.outputs.version }}
-        path: release${{ steps.get_version.outputs.version }}/release${{ steps.get_version.outputs.version }}.zip
+        name: release_${{ steps.get_version.outputs.version }}
+        path: release_${{ steps.get_version.outputs.version }}/release_${{ steps.get_version.outputs.version }}.zip
+  release:
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Get version
+        id: get_version
+        run: echo "::set-output name=version::$((Select-Xml -Path .\Jiggle\Jiggle.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)"
+        shell: pwsh
+      - name: Generate changelog
+        id: changelog
+        uses: metcalfc/changelog-generator@v1.0.0
+        with:
+          myToken: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download build
+        id: download_artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: release_${{ steps.get_version.outputs.version }}.zip
+          path: release
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          release_name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
+          draft: true
+          prerelease: false
+          body: |
+            ## Release
+            Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
+            Changelog:
+            ${{ steps.changelog.outputs.changelog }}
+      - name: Upload Release
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/release_${{ steps.get_version.outputs.version }}.zip
+          asset_name: release_${{ steps.get_version.outputs.version }}.zip
