@@ -30,7 +30,7 @@ jobs:
     - name: Upload zip artifact
       uses: actions/upload-artifact@v2
       with:
-        name: release_${{ steps.get_version.outputs.version }}
+        name: ivinfo_${{ steps.get_version.outputs.version }}
         path: artifacts/ivinfo_${{ steps.get_version.outputs.version }}.zip
   release:
     needs: [ build ]
