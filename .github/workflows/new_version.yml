@@ -23,13 +23,6 @@ jobs:
       id: get_version
       run: echo "::set-output name=version::$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)"
       shell: pwsh
-    - name: Copy files
-      run: |
-        mkdir -p release_${{ steps.get_version.outputs.version }} &&
-        cd release_${{ steps.get_version.outputs.version }} &&
-        cp ../bin/Release/net5.0/publish/Jellyfin.Plugin.IvInfo.dll ./ &&
-        cp ../bin/Release/net5.0/publish/HtmlAgilityPack.dll ./ &&
-        pwd && ls
     - name: jprm-build
       uses: oddstr13/jellyfin-plugin-repository-manager@v0.4.2
     - name: Upload zip artifact
