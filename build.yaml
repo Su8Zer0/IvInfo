@@ -12,3 +12,5 @@ description: >
 category: "Metadata"
 artifacts:
   - "Jellyfin.Plugin.IvInfo.dll"
+changelog: |-
+  Initial release
