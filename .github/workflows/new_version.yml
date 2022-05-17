@@ -34,17 +34,13 @@ jobs:
         cp ../bin/Release/net5.0/publish/Jellyfin.Plugin.IvInfo.dll ./ &&
         cp ../bin/Release/net5.0/publish/HtmlAgilityPack.dll ./ &&
         pwd && ls
-    - name: Zip Release
-      uses: thedoctor0/zip-release@master
-      with:
-        type: 'zip'
-        directory: release_${{ steps.get_version.outputs.version }}/
-        filename: 'release_${{ steps.get_version.outputs.version }}.zip'
+    - name: jprm-build
+      uses: oddstr13/jellyfin-plugin-repository-manager@v0.4.2
     - name: Upload zip artifact
       uses: actions/upload-artifact@v2
       with:
         name: release_${{ steps.get_version.outputs.version }}
-        path: release_${{ steps.get_version.outputs.version }}/release_${{ steps.get_version.outputs.version }}.zip
+        path: ${{ steps.build.outputs.artifact }}
   release:
     needs: [ build ]
     runs-on: ubuntu-latest
