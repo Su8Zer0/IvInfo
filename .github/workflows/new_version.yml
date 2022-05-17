@@ -26,7 +26,7 @@ jobs:
     - name: jprm-build
       uses: oddstr13/jellyfin-plugin-repository-manager@v0.4.2
     - name: test
-      run: pwd && ls
+      run: pwd && ls && ls artifacts
     - name: Upload zip artifact
       uses: actions/upload-artifact@v2
       with:
