@@ -46,7 +46,7 @@ jobs:
         id: download_artifacts
         uses: actions/download-artifact@v2
         with:
-          name: release_${{ steps.get_version.outputs.version }}
+          name: ivinfo_${{ steps.get_version.outputs.version }}
           path: release
       - name: Create Release
         id: create_release
@@ -70,6 +70,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/release_${{ steps.get_version.outputs.version }}.zip
+          asset_path: release/ivinfo_${{ steps.get_version.outputs.version }}.zip
           asset_name: Jellyfin.Plugin.IvInfo_${{ steps.get_version.outputs.version }}.zip
           asset_content_type: application/zip
