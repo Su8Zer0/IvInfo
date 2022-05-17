@@ -29,7 +29,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: release_${{ steps.get_version.outputs.version }}
-        path: ${{ steps.build.outputs.artifact }}
+        path: artifacts/ivinfo_${{ steps.get_version.outputs.version }}
   release:
     needs: [ build ]
     runs-on: ubuntu-latest
