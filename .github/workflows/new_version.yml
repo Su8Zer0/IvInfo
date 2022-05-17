@@ -63,9 +63,9 @@ jobs:
           path: release
       - name: Generate changelog
         id: changelog
-        uses: endaft/action-changelog@v0.0.2
+        uses: metcalfc/changelog-generator@v3.0.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          myToken: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
