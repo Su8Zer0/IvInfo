@@ -31,7 +31,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         public int Priority => 1;
 
-        public bool Enabled => true;
+        public bool Enabled => IvInfo.Instance?.Configuration.DmmScraperEnabled ?? false;
 
         public IEnumerable<RemoteSearchResult> GetSearchResults(MovieInfo info)
         {
@@ -56,7 +56,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             var scraperId = item.GetProviderId(Name);
             _logger.LogDebug("Scraper id: {Id}", scraperId);
             if (string.IsNullOrEmpty(scraperId)) return result;
-            
+
             var url = string.Format(PageUrl, scraperId);
             _logger.LogDebug("PageUrl: {Url}", url);
 

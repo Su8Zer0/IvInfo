@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.IvInfo.Providers
 {
     /// <summary>
-    /// IV Info Provider.
+    ///     IV Info Provider.
     /// </summary>
     public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemoteImageProvider
     {
@@ -28,64 +28,10 @@ namespace Jellyfin.Plugin.IvInfo.Providers
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<IvInfoProvider> _logger;
 
-        public string Name => IvInfoConstants.Name;
-
         public IvInfoProvider(IHttpClientFactory httpClientFactory, ILogger<IvInfoProvider> logger)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
-        }
-
-        public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo,
-            CancellationToken cancellationToken)
-        {
-            _logger.LogDebug("GetSearchResults");
-            _logger.LogDebug("Params: Name:{Name}, Path:{Path}", searchInfo.Name, searchInfo.Path);
-            var result = new List<RemoteSearchResult>();
-            var id = GetId(searchInfo);
-            if (id == null) return Task.Run(() => result.OrderByString(_ => ""), cancellationToken);
-            var scrapers = GetAllScrapers().ToList();
-            foreach (var scraper in scrapers)
-            {
-                result.AddRange(scraper.GetSearchResults(searchInfo));
-            }
-
-            return Task.Run(() => result.OrderByString(_ => ""), cancellationToken);
-        }
-
-        public Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
-        {
-            _logger.LogDebug("GetMetadata");
-            _logger.LogDebug(
-                "Params: Name:{Name}, Path:{Path}, Year:{Year}, IndexNumber:{IndexNumber}, ProviderIds{Ids}",
-                info.Name, info.Path, info.Year, info.IndexNumber, info.ProviderIds);
-            var result = new MetadataResult<Movie>
-            {
-                HasMetadata = false
-            };
-            var id = GetId(info);
-            _logger.LogDebug("Parsed id:{Id}", id);
-
-            if (string.IsNullOrWhiteSpace(id))
-            {
-                _logger.LogError("Id could not be determined ({Name})", info.Name);
-                return Task.Run(() => result, cancellationToken);
-            }
-
-            result.Item = new Movie
-            {
-                Path = info.Path,
-                ProviderIds = info.ProviderIds
-            };
-            result.Item.SetProviderId(Name, id);
-
-            var scrapers = GetAllScrapers();
-            foreach (var scraper in scrapers)
-            {
-                result.HasMetadata |= scraper.FillMetadata(result);
-            }
-
-            return Task.Run(() => result, cancellationToken);
         }
 
         public bool Supports(BaseItem item)
@@ -122,11 +68,57 @@ namespace Jellyfin.Plugin.IvInfo.Providers
                      where scraper.HandledImageTypes().Any()
                      from t in GetSupportedImages(item)
                      select scraper.GetImages(item, t))
-            {
                 result.AddRange(urls);
-            }
 
             return Task.Run(() => result.OrderByLanguageDescending(language), cancellationToken);
+        }
+
+        public string Name => IvInfoConstants.Name;
+
+        public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogDebug("GetSearchResults");
+            _logger.LogDebug("Params: Name:{Name}, Path:{Path}", searchInfo.Name, searchInfo.Path);
+            var result = new List<RemoteSearchResult>();
+            var id = GetId(searchInfo);
+            if (string.IsNullOrEmpty(id)) return Task.Run(() => result.OrderByString(_ => ""), cancellationToken);
+            var scrapers = GetAllScrapers();
+            foreach (var scraper in scrapers) result.AddRange(scraper.GetSearchResults(searchInfo));
+
+            return Task.Run(() => result.OrderByString(_ => ""), cancellationToken);
+        }
+
+        public Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
+        {
+            _logger.LogDebug("GetMetadata");
+            _logger.LogDebug(
+                "Params: Name:{Name}, Path:{Path}, Year:{Year}, IndexNumber:{IndexNumber}, ProviderIds{Ids}",
+                info.Name, info.Path, info.Year, info.IndexNumber, info.ProviderIds);
+            var result = new MetadataResult<Movie>
+            {
+                HasMetadata = false
+            };
+            var id = GetId(info);
+            _logger.LogDebug("Parsed id:{Id}", id);
+
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                _logger.LogError("Id could not be determined ({Name})", info.Name);
+                return Task.Run(() => result, cancellationToken);
+            }
+
+            result.Item = new Movie
+            {
+                Path = info.Path,
+                ProviderIds = info.ProviderIds
+            };
+            result.Item.SetProviderId(Name, id);
+
+            var scrapers = GetAllScrapers();
+            foreach (var scraper in scrapers) result.HasMetadata |= scraper.FillMetadata(result);
+
+            return Task.Run(() => result, cancellationToken);
         }
 
         public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
@@ -144,10 +136,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers
 
         private static string ParseId(ItemLookupInfo info)
         {
-            if (!string.IsNullOrEmpty(info.Path))
-            {
-                return Regex.Match(info.Path, IdPattern).Groups[1].Value;
-            }
+            if (!string.IsNullOrEmpty(info.Path)) return Regex.Match(info.Path, IdPattern).Groups[1].Value;
 
             return !string.IsNullOrEmpty(info.Name) ? Regex.Match(info.Name, IdPattern).Groups[1].Value : string.Empty;
         }

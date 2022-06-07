@@ -12,14 +12,14 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
     public class R18Scraper : IScraper
     {
         private const string Name = nameof(R18Scraper);
-        
+
         private readonly ILogger _logger;
 
         public R18Scraper(ILogger logger)
         {
             _logger = logger;
         }
-        
+
         public int Priority => 2;
 
         public bool Enabled => false;
@@ -35,7 +35,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         {
             var id = metadata.Item.GetProviderId(IvInfoConstants.Name);
             if (string.IsNullOrEmpty(id)) return false;
-            
+
             return false;
         }
 
