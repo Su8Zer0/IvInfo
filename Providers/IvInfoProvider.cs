@@ -46,7 +46,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers
             yield return ImageType.Screenshot;
         }
 
-        public Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
+        public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
         {
             _logger.LogDebug("GetImages");
             _logger.LogDebug("Params: Item:{Item}", item);
@@ -59,37 +59,43 @@ namespace Jellyfin.Plugin.IvInfo.Providers
             if (string.IsNullOrWhiteSpace(id))
             {
                 _logger.LogError("No id found");
-                return Task.Run(() => result.OrderByLanguageDescending(language), cancellationToken);
+                return result.OrderByLanguageDescending(language);
             }
 
             var scrapers = GetAllScrapers();
 
-            foreach (var urls in from scraper in scrapers
-                     where scraper.HandledImageTypes().Any()
-                     from t in GetSupportedImages(item)
-                     select scraper.GetImages(item, t))
-                result.AddRange(urls);
+            foreach (var scraper in scrapers)
+            {
+                foreach (var imageType in scraper.HandledImageTypes())
+                {
+                    if (GetSupportedImages(item).Contains(imageType))
+                    {
+                        result.AddRange(await scraper.GetImages(item, cancellationToken, imageType));
+                    }
+                }
+            }
 
-            return Task.Run(() => result.OrderByLanguageDescending(language), cancellationToken);
+            return result.OrderByLanguageDescending(language);
         }
 
         public string Name => IvInfoConstants.Name;
 
-        public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo,
+        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo,
             CancellationToken cancellationToken)
         {
             _logger.LogDebug("GetSearchResults");
             _logger.LogDebug("Params: Name:{Name}, Path:{Path}", searchInfo.Name, searchInfo.Path);
             var result = new List<RemoteSearchResult>();
             var id = GetId(searchInfo);
-            if (string.IsNullOrEmpty(id)) return Task.Run(() => result.OrderByString(_ => ""), cancellationToken);
+            if (string.IsNullOrEmpty(id)) return result.OrderByString(_ => "");
             var scrapers = GetAllScrapers();
-            foreach (var scraper in scrapers) result.AddRange(scraper.GetSearchResults(searchInfo));
+            foreach (var scraper in scrapers)
+                result.AddRange(await scraper.GetSearchResults(searchInfo, cancellationToken));
 
-            return Task.Run(() => result.OrderByString(_ => ""), cancellationToken);
+            return result.OrderByString(_ => "");
         }
 
-        public Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
+        public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
         {
             _logger.LogDebug("GetMetadata");
             _logger.LogDebug(
@@ -105,7 +111,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers
             if (string.IsNullOrWhiteSpace(id))
             {
                 _logger.LogError("Id could not be determined ({Name})", info.Name);
-                return Task.Run(() => result, cancellationToken);
+                return result;
             }
 
             result.Item = new Movie
@@ -116,9 +122,10 @@ namespace Jellyfin.Plugin.IvInfo.Providers
             result.Item.SetProviderId(Name, id);
 
             var scrapers = GetAllScrapers();
-            foreach (var scraper in scrapers) result.HasMetadata |= scraper.FillMetadata(result);
+            foreach (var scraper in scrapers)
+                result.HasMetadata |= await scraper.FillMetadata(result, cancellationToken);
 
-            return Task.Run(() => result, cancellationToken);
+            return result;
         }
 
         public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
