@@ -23,7 +23,7 @@ namespace Jellyfin.Plugin.IvInfo
             };
             // mi.SetProviderId("JavlibraryScraper", "javme3a55i");
             mi.SetProviderId(IvInfoConstants.Name, "IMBD-168");
-            p.GetSearchResults(mi, CancellationToken.None);
+            p.GetSearchResults(mi, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
             // var mr = p.GetMetadata(mi, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
             // mr.Item.PreferredMetadataLanguage = "en";
             // p.GetImages(mr.Item, CancellationToken.None);

@@ -1,14 +1,14 @@
 {
   "category": "Metadata",
-  "changelog": "first stable version",
+  "changelog": "update for jellyfin 10.8/.net6.0",
   "description": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
   "guid": "abe0c619-a145-4890-896b-cb1089ade4fe",
   "name": "IvInfo",
   "overview": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
   "owner": "SubZeroPL",
-  "targetAbi": "10.7.7.0",
+  "targetAbi": "10.8.0.0",
   "timestamp": "2022-05-13T00:00:00.0000000Z",
-  "version": "0.1.3.0",
+  "version": "0.1.4.0",
   "status": "Active",
   "autoUpdate": true
 }

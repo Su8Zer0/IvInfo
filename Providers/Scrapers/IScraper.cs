@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
@@ -21,26 +23,32 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         ///     Returns search results for this item info.
         /// </summary>
         /// <param name="info">searched item</param>
+        /// <param name="cancellationToken">cancellation token</param>
         /// <returns>list with search results</returns>
-        public IEnumerable<RemoteSearchResult> GetSearchResults(MovieInfo info);
+        public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo info,
+            CancellationToken cancellationToken);
 
         /// <summary>
         ///     Fills metadata for <see cref="MetadataResult{T}" />. When <c>overwrite</c> is true then all (available) data is
         ///     filled, otherwise only missing data is filled.
         /// </summary>
         /// <param name="metadata">metadata object to fill</param>
+        /// <param name="cancellationToken">cancellation token</param>
         /// <param name="overwrite">to overwrite present data or not</param>
         /// <returns>true if any data was filled, false otherwise</returns>
-        public bool FillMetadata(MetadataResult<Movie> metadata, bool overwrite = false);
+        public Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
+            bool overwrite = false);
 
         /// <summary>
         ///     Gets url list for image for passed item and requested type.
         /// </summary>
         /// <param name="item">item</param>
+        /// <param name="cancellationToken">cancellation token</param>
         /// <param name="imageType">image type <seealso cref="ImageType" /></param>
         /// <param name="overwrite"></param>
         /// <returns>url list for image or empty list if image was not found</returns>
-        public IEnumerable<RemoteImageInfo> GetImages(BaseItem item, ImageType imageType = ImageType.Primary,
+        public Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
+            ImageType imageType = ImageType.Primary,
             bool overwrite = false);
 
         /// <summary>
