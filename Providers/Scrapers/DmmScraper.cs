@@ -18,7 +18,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
     // ReSharper disable once UnusedType.Global
     public class DmmScraper : IScraper
     {
-        private const string Name = nameof(DmmScraper);
+        public const string Name = nameof(DmmScraper);
 
         private const string DomainUrl = "https://www.dmm.co.jp/";
         private const string PageUrl = DomainUrl + "mono/dvd/-/detail/=/cid={0}";
@@ -35,34 +35,45 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         public bool Enabled => IvInfo.Instance?.Configuration.DmmScraperEnabled ?? false;
 
-        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo info,
+        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
+            MovieInfo info,
             CancellationToken cancellationToken)
         {
-            _logger.LogDebug("{Name}: Searching not supported", Name);
+            _logger.LogDebug("{Name}: searching not supported", Name);
             return await Task.Run(() => new List<RemoteSearchResult>().AsEnumerable(), cancellationToken);
         }
 
         public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
             bool overwrite = false)
         {
-            _logger.LogDebug("{Name}: Metadata lookup not supported", Name);
+            _logger.LogDebug("{Name}: metadata lookup not supported", Name);
             return await Task.Run(() => false, cancellationToken);
         }
 
         public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
             ImageType imageType = ImageType.Primary, bool overwrite = false)
         {
-            _logger.LogDebug("Getting image type {Type} for item {Name}", imageType, item.Name);
+            _logger.LogDebug("{Name}: searching for image {ImageType}", Name, imageType);
             var result = new List<RemoteImageInfo>();
 
-            if (!HandledImageTypes().Contains(imageType)) return result;
+            if (!HandledImageTypes().Contains(imageType))
+            {
+                _logger.LogDebug("{Name}: {ImageType} image type not handled", Name, imageType);
+                return result;
+            }
+
+            if (item.ImageInfos.Any(i => i.Type == imageType) && !overwrite)
+            {
+                _logger.LogDebug("{Name}: {ImageType} image already exists, not overwriting", Name, imageType);
+                return result;
+            }
 
             var scraperId = item.GetProviderId(Name);
-            _logger.LogDebug("Scraper id: {Id}", scraperId);
+            _logger.LogDebug("{Name}: scraper id: {Id}", Name, scraperId);
             if (string.IsNullOrEmpty(scraperId)) return result;
 
             var url = string.Format(PageUrl, scraperId);
-            _logger.LogDebug("PageUrl: {Url}", url);
+            _logger.LogDebug("{Name}: pageUrl: {Url}", Name, url);
 
             var doc = new HtmlDocument();
             var html = await GetHtml(url, cancellationToken);
@@ -76,14 +87,12 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 case ImageType.Primary:
                     var frontUrl = doc.DocumentNode.SelectSingleNode("//a[@name='package-image']/img")
                         .GetAttributeValue("src", "");
-                    result.Add(new RemoteImageInfo
-                        { Url = frontUrl, Type = imageType, ProviderName = IvInfoConstants.Name });
+                    result = IScraper.AddOrOverwrite(result, imageType, frontUrl, overwrite);
                     break;
                 case ImageType.Box:
                     var boxUrl = doc.DocumentNode.SelectSingleNode("//a[@name='package-image']")
                         .GetAttributeValue("href", "");
-                    result.Add(new RemoteImageInfo
-                        { Url = boxUrl, Type = imageType, ProviderName = IvInfoConstants.Name });
+                    result = IScraper.AddOrOverwrite(result, imageType, boxUrl, overwrite);
                     break;
                 case ImageType.Screenshot:
                     var screenshotNodes = doc.DocumentNode.SelectNodes("//a[@name='sample-image']/img");
@@ -93,6 +102,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                     break;
             }
 
+            _logger.LogDebug("{Name}: image searching finished", Name);
             return await Task.Run(() => result, cancellationToken);
         }
 
@@ -118,9 +128,12 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             try
             {
                 var response = await client.SendAsync(request, cancellationToken);
-                return await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogDebug("{Name}: GetHtml finished, status code: {Code}", Name, response.StatusCode);
+                return response.IsSuccessStatusCode
+                    ? await response.Content.ReadAsStringAsync(cancellationToken)
+                    : string.Empty;
             }
-            catch (WebException e)
+            catch (Exception e)
             {
                 _logger.LogError("Could not load page {Url}\n{Message}", url, e.Message);
                 return string.Empty;
