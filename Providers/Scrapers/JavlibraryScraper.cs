@@ -19,7 +19,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
     // ReSharper disable once UnusedType.Global
     public class JavlibraryScraper : IScraper
     {
-        private const string Name = nameof(JavlibraryScraper);
+        public const string Name = nameof(JavlibraryScraper);
 
         private const string DomainUrlEn = "https://www.javlibrary.com/en/";
         private const string DomainUrlJa = "https://www.javlibrary.com/ja/";
@@ -40,16 +40,16 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         public bool Enabled => IvInfo.Instance?.Configuration.JavlibraryScraperEnabled ?? false;
 
-        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo info,
-            CancellationToken cancellationToken)
+        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
+            MovieInfo info, CancellationToken cancellationToken)
         {
+            var localResultList = new List<RemoteSearchResult>(resultList);
             var globalId = info.GetProviderId(IvInfoConstants.Name) ?? IvInfoProvider.GetId(info);
             _logger.LogDebug("{Name}: searching for id: {Id}", Name, globalId);
-            var resultList = new List<RemoteSearchResult>();
-            if (string.IsNullOrEmpty(globalId)) return resultList;
+            if (string.IsNullOrEmpty(globalId)) return localResultList;
 
             var (multiple, doc) = await GetSearchResultsOrResultPage(globalId, cancellationToken);
-            if (string.IsNullOrEmpty(doc.Text)) return resultList;
+            if (string.IsNullOrEmpty(doc.Text)) return localResultList;
 
             if (multiple)
             {
@@ -61,20 +61,23 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                     var title = node.LastChild.InnerText.Replace(globalId, "").Trim();
                     var imgUrl = node.ChildNodes.FindFirst("img").GetAttributeValue("src", "");
                     var dmmId = imgUrl.Split("/").Last().Replace("ps.jpg", "");
-                    var result = new RemoteSearchResult
+                    var result = localResultList.Find(r => r.ProviderIds[IvInfoConstants.Name].Equals(foundGlobalId));
+                    if (result == null)
                     {
-                        Name = title,
-                        ImageUrl = imgUrl,
-                        SearchProviderName = Name,
-                        Overview = $"{foundGlobalId}<br />{title}",
-                        AlbumArtist = new RemoteSearchResult
+                        result = new RemoteSearchResult
                         {
-                            Name = foundGlobalId
-                        }
-                    };
+                            Name = title,
+                            ImageUrl = imgUrl,
+                            SearchProviderName = Name,
+                            Overview = $"{foundGlobalId}<br />{title}",
+                            AlbumArtist = new RemoteSearchResult { Name = foundGlobalId }
+                        };
+                        result.SetProviderId(IvInfoConstants.Name, foundGlobalId);
+                        localResultList.Add(result);
+                    }
+
                     result.SetProviderId(Name, scraperId);
-                    result.SetProviderId(nameof(DmmScraper), dmmId);
-                    resultList.Add(result);
+                    result.SetProviderId(DmmScraper.Name, dmmId);
                 }
             }
             else
@@ -85,18 +88,26 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 var imgUrl = doc.DocumentNode.SelectSingleNode("//img[@id='video_jacket_img']")
                     .GetAttributeValue("src", null).Replace("pl.jpg", "ps.jpg");
                 var dmmId = imgUrl.Split("/").Last().Replace("ps.jpg", "");
-                var result = new RemoteSearchResult
+                var result = localResultList.Find(r => r.ProviderIds[IvInfoConstants.Name].Equals(globalId));
+                if (result == null)
                 {
-                    Name = title,
-                    ImageUrl = imgUrl,
-                    SearchProviderName = Name
-                };
+                    result = new RemoteSearchResult
+                    {
+                        Name = title,
+                        ImageUrl = imgUrl,
+                        SearchProviderName = Name,
+                        Overview = $"{globalId}<br />{title}",
+                        AlbumArtist = new RemoteSearchResult { Name = globalId }
+                    };
+                    result.SetProviderId(IvInfoConstants.Name, globalId);
+                    localResultList.Add(result);
+                }
+
                 result.SetProviderId(Name, scraperId);
-                result.SetProviderId(nameof(DmmScraper), dmmId);
-                resultList.Add(result);
+                result.SetProviderId(DmmScraper.Name, dmmId);
             }
 
-            return resultList;
+            return localResultList;
         }
 
         public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
@@ -104,19 +115,30 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         {
             var scraperId = metadata.Item.GetProviderId(Name);
             var globalId = IvInfoProvider.GetId(metadata.Item.GetLookupInfo());
+            _logger.LogDebug("{Name}: searching for ids: {GlobalId}, {ScraperId}", Name, globalId, scraperId);
 
             HtmlDocument doc;
             if (scraperId == null)
             {
+                _logger.LogDebug("{Name}: no scraperid, searching for globalid: {Id}", Name, globalId);
                 (var multi, doc) = await GetSearchResultsOrResultPage(globalId, cancellationToken);
-                if (multi) return false;
+                if (multi)
+                {
+                    _logger.LogDebug("{Name}: multiple results, need to identify manually", Name);
+                    return false;
+                }
             }
             else
             {
+                _logger.LogDebug("{Name}: searching for scraperid: {Id}", Name, scraperId);
                 doc = await GetSingleResult(scraperId, cancellationToken);
             }
 
-            if (string.IsNullOrEmpty(doc.Text)) return false;
+            if (string.IsNullOrEmpty(doc.Text))
+            {
+                _logger.LogDebug("{Name}: searching returned empty page, error?", Name);
+                return false;
+            }
 
             scraperId = GetScraperId(doc);
             globalId = GetGlobalId(doc);
@@ -189,21 +211,30 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 .GetAttributeValue("src", null).Split("/").Last().Replace("pl.jpg", "");
 
             metadata.Item.SetProviderId(Name, scraperId);
-            metadata.Item.SetProviderId(nameof(DmmScraper), dmmId);
+            metadata.Item.SetProviderId(DmmScraper.Name, dmmId);
             metadata.Item.SetProviderId(IvInfoConstants.Name, globalId);
 
+            _logger.LogDebug("{Name}: searching finished", Name);
             return true;
         }
 
         public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
-            ImageType imageType = ImageType.Primary,
-            bool overwrite = false)
+            ImageType imageType = ImageType.Primary, bool overwrite = false)
         {
+            _logger.LogDebug("{Name}: searching for image {ImageType}", Name, imageType);
             var result = new List<RemoteImageInfo>();
 
-            if (!HandledImageTypes().Contains(imageType)) return result;
+            if (!HandledImageTypes().Contains(imageType))
+            {
+                _logger.LogDebug("{Name}: {ImageType} image type not handled", Name, imageType);
+                return result;
+            }
 
-            if (item.ImageInfos.Any(i => i.Type == imageType) && !overwrite) return result;
+            if (item.ImageInfos.Any(i => i.Type == imageType) && !overwrite)
+            {
+                _logger.LogDebug("{Name}: {ImageType} image already exists, not overwriting", Name, imageType);
+                return result;
+            }
 
             var scraperId = item.GetProviderId(Name);
             if (string.IsNullOrEmpty(scraperId)) return result;
@@ -216,12 +247,13 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
             result = IScraper.AddOrOverwrite(result, imageType, url, overwrite);
 
+            _logger.LogDebug("{Name}: image searching finished", Name);
             return result;
         }
 
         public IEnumerable<ImageType> HandledImageTypes()
         {
-            yield return ImageType.Primary;
+            yield return ImageType.Box;
         }
 
         /// <summary>
@@ -234,7 +266,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         private async Task<(bool, HtmlDocument)> GetSearchResultsOrResultPage(string globalId,
             CancellationToken cancellationToken)
         {
-            _logger.LogDebug("{Name}: searching for id: {Id}", Name, globalId);
+            _logger.LogDebug("{Name}: searching for globalid: {Id}", Name, globalId);
             if (string.IsNullOrEmpty(globalId)) return (false, new HtmlDocument());
             var url = string.Format(BaseUrlEn, globalId);
             var html = await GetHtml(url, cancellationToken);
@@ -254,7 +286,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         /// <returns>page for id</returns>
         private async Task<HtmlDocument> GetSingleResult(string scraperId, CancellationToken cancellationToken)
         {
-            _logger.LogDebug("{Name}: getting page for id: {Id}", Name, scraperId);
+            _logger.LogDebug("{Name}: getting page for scraperid: {Id}", Name, scraperId);
             var doc = new HtmlDocument();
             if (string.IsNullOrEmpty(scraperId)) return doc;
             var url = DomainUrlEn + string.Format(PageUrl, scraperId);
@@ -264,19 +296,22 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             return doc;
         }
 
-        private static string GetScraperId(HtmlDocument doc)
+        private string GetScraperId(HtmlDocument doc)
         {
+            _logger.LogDebug("{Name}: parsing scraperid", Name);
             return doc.DocumentNode.SelectSingleNode("//div[@id='video_title']/*/a")
                 .GetAttributeValue("href", "").Split("=")[1];
         }
 
-        private static string GetGlobalId(HtmlDocument doc)
+        private string GetGlobalId(HtmlDocument doc)
         {
+            _logger.LogDebug("{Name}: parsing globalid", Name);
             return doc.DocumentNode.SelectSingleNode("//div[@id='video_id']/table/tr/td[@class='text']").InnerText;
         }
 
         private async Task<string> GetHtml(string url, CancellationToken cancellationToken)
         {
+            _logger.LogDebug("{Name}: loading html from url: {Url}", Name, url);
             var cookies = new CookieContainer();
             cookies.Add(
                 new Cookie("__cf_bm",
@@ -293,11 +328,14 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             try
             {
                 var response = await client.SendAsync(request, cancellationToken);
-                return await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogDebug("{Name}: GetHtml finished, status code: {Code}", Name, response.StatusCode);
+                return response.IsSuccessStatusCode
+                    ? await response.Content.ReadAsStringAsync(cancellationToken)
+                    : string.Empty;
             }
-            catch (WebException e)
+            catch (Exception e)
             {
-                _logger.LogError("Could not load page {Url}\n{Message}", url, e.Message);
+                _logger.LogError("{Name}: could not load page {Url}\n{Message}", Name, url, e.Message);
                 return string.Empty;
             }
         }

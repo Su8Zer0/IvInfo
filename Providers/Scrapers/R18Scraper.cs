@@ -26,7 +26,8 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         public bool Enabled => false;
 
-        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo info,
+        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
+            MovieInfo info,
             CancellationToken cancellationToken)
         {
             var globalId = info.GetProviderId(IvInfoConstants.Name);

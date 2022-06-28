@@ -38,11 +38,11 @@
             };
 
             document.querySelector('.configPage')
-                .addEventListener('pageshow', function () {
+                .addEventListener('pageshow', function (e) {
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(PluginConfig.pluginId).then(function (config) {
                         document.querySelector('#javlibrary').checked = config.JavlibraryScraperEnabled;
-                        document.querySelector('#dmm').checked = config.DMMScraperEnabled;
+                        document.querySelector('#dmm').checked = config.DmmScraperEnabled;
                         document.querySelector('#gekiyasu').checked = config.GekiyasuScraperEnabled;
                         Dashboard.hideLoadingMsg();
                     });
@@ -52,18 +52,16 @@
             document.querySelector('.configForm')
                 .addEventListener('submit', function (e) {
                     Dashboard.showLoadingMsg();
-    
                     ApiClient.getPluginConfiguration(PluginConfig.pluginId).then(function (config) {
                         config.JavlibraryScraperEnabled = document.querySelector('#javlibrary').checked;
-                        config.DMMScraperEnabled = document.querySelector('#dmm').checked;
+                        config.DmmScraperEnabled = document.querySelector('#dmm').checked;
                         config.GekiyasuScraperEnabled = document.querySelector('#gekiyasu').checked;
                         ApiClient.updatePluginConfiguration(PluginConfig.pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                     });
                     
                     e.preventDefault();
                     return false;
-                });        
-    
+                });    
     </script>
 </div>
 </body>
