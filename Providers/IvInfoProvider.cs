@@ -68,7 +68,14 @@ namespace Jellyfin.Plugin.IvInfo.Providers
             {
                 foreach (var imageType in scraper.HandledImageTypes())
                 {
-                    result.AddRange(await scraper.GetImages(item, cancellationToken, imageType));
+                    try
+                    {
+                        result.AddRange(await scraper.GetImages(item, cancellationToken, imageType));
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError(e, "Error getting images from scraper {Scraper}\n{Error}", scraper, e.Message);
+                    }
                 }
             }
 

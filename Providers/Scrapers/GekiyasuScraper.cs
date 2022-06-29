@@ -58,7 +58,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                     new HtmlNodeCollection(null);
                 foreach (var node in nodeCollection)
                 {
-                    var scraperId = node.ChildNodes.FindFirst("a").GetAttributeValue("href", "").Split("/").Last();
+                    var scraperId = node.ChildNodes.FindFirst("a").GetAttributeValue("href", "").Trim('/');
                     var foundGlobalId = globalId;
                     var title = node.ChildNodes.FindFirst("p").InnerText;
                     var imgUrl = BaseUrl + node.ChildNodes.FindFirst("a").FirstChild.GetAttributeValue("src", "");
@@ -283,7 +283,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         }
 
         private async Task<string> GetHtml(string url, CancellationToken cancellationToken, string? productId = null,
-            string? transactionId = null, string? sessionId = null)
+            string? transactionId = null)
         {
             _logger.LogDebug("{Name}: loading html from url: {Url}", Name, url);
             var cookies = new CookieContainer();
@@ -315,7 +315,6 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                         var query = response.RequestMessage?.RequestUri?.Query;
                         if (query != null && query.Contains(TransactionId))
                         {
-                            var transId = query.Split(TransactionId)[1].Trim('=');
                             var id = query.Split(TransactionId)[0].Trim('?', '&').Split('=')[1].Trim('/');
                             // post to agecheck
                             var parameters = new List<KeyValuePair<string, string>>
