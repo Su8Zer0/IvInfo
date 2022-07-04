@@ -169,7 +169,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 .Replace(")", "");
             var score = string.IsNullOrWhiteSpace(scoreText)
                 ? -1
-                : float.Parse(scoreText, new CultureInfo("en-US").NumberFormat);
+                : float.Parse(scoreText, CultureInfo.InvariantCulture.NumberFormat);
 
             if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.Name)) metadata.Item.Name = title;
             if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.OriginalTitle))

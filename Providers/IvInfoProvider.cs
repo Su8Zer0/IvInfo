@@ -127,7 +127,16 @@ namespace Jellyfin.Plugin.IvInfo.Providers
 
             var scrapers = GetAllScrapers();
             foreach (var scraper in scrapers)
-                result.HasMetadata |= await scraper.FillMetadata(result, cancellationToken);
+            {
+                try
+                {
+                    result.HasMetadata |= await scraper.FillMetadata(result, cancellationToken);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "GetMetadata error, scraper {Scraper}: {Message}", scraper, e.Message);
+                }
+            }
 
             return result;
         }
