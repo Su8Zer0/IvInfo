@@ -62,7 +62,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers
                 return result.OrderByLanguageDescending(language);
             }
 
-            var scrapers = GetAllScrapers();
+            var scrapers = GetImageScrapers();
 
             foreach (var scraper in scrapers)
             {
@@ -92,7 +92,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers
             var result = new List<RemoteSearchResult>();
             var id = GetId(searchInfo);
             if (string.IsNullOrEmpty(id)) return result.OrderByString(_ => "");
-            var scrapers = GetAllScrapers();
+            var scrapers = GetEnabledScrapers();
             foreach (var scraper in scrapers)
                 result.AddRange(await scraper.GetSearchResults(result, searchInfo, cancellationToken));
 
@@ -125,7 +125,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers
             };
             result.Item.SetProviderId(Name, id);
 
-            var scrapers = GetAllScrapers();
+            var scrapers = GetEnabledScrapers();
             foreach (var scraper in scrapers)
             {
                 try
@@ -173,9 +173,22 @@ namespace Jellyfin.Plugin.IvInfo.Providers
                         { _logger }) as IScraper;
                     return obj;
                 })!;
-            objects.RemoveAll(s => !s.Enabled);
             objects.Sort((x, y) => x.Priority - y.Priority);
             return objects;
+        }
+
+        private IEnumerable<IScraper> GetEnabledScrapers()
+        {
+            var list = GetAllScrapers().ToList();
+            list.RemoveAll(s => !s.Enabled);
+            return list;
+        }
+
+        private IEnumerable<IScraper> GetImageScrapers()
+        {
+            var list = GetAllScrapers().ToList();
+            list.RemoveAll(s => !s.ImgEnabled);
+            return list;
         }
     }
 }

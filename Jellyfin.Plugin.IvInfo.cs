@@ -38,7 +38,7 @@ namespace Jellyfin.Plugin.IvInfo
 
         public override PluginInfo GetPluginInfo()
         {
-            return new PluginInfo(IvInfoConstants.Name, new Version(0, 1, 5, 2), "Idol Video metadata provider", Id,
+            return new PluginInfo(IvInfoConstants.Name, new Version(0, 1, 5, 3), "Idol Video metadata provider", Id,
                 true);
         }
     }
