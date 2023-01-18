@@ -38,15 +38,12 @@ public interface IScraper
         MovieInfo info, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Fills metadata for <see cref="MetadataResult{T}" />. When <c>overwrite</c> is true then all (available) data is
-    ///     filled, otherwise only missing data is filled.
+    ///     Fills metadata for <see cref="MetadataResult{T}" />.
     /// </summary>
     /// <param name="metadata">metadata object to fill</param>
     /// <param name="cancellationToken">cancellation token</param>
-    /// <param name="overwrite">to overwrite present data or not</param>
     /// <returns>true if any data was filled, false otherwise</returns>
-    public Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
-        bool overwrite = false);
+    public Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken);
 
     /// <summary>
     ///     Gets url list for image for passed item and requested type.
@@ -54,11 +51,9 @@ public interface IScraper
     /// <param name="item">item</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <param name="imageType">image type <seealso cref="ImageType" /></param>
-    /// <param name="overwrite"></param>
     /// <returns>url list for image or empty list if image was not found</returns>
     public Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
-        ImageType imageType = ImageType.Primary,
-        bool overwrite = false);
+        ImageType imageType = ImageType.Primary);
 
     /// <summary>
     ///     Returns array of <see cref="ImageType" />s provided by scraper.
@@ -68,35 +63,25 @@ public interface IScraper
 
     /// <summary>
     ///     Adds new image to list.<br />
-    ///     If image of this type already exists in the list and overwrite is true then existing image
-    ///     is removed and new one added, otherwise nothing is done.
+    ///     If image of this type already exists in the list then existing image is removed, and then the new one added.
     /// </summary>
     /// <param name="images">list with images</param>
     /// <param name="imageType">
     ///     <see cref="ImageType" />
     /// </param>
     /// <param name="url">new image url</param>
-    /// <param name="overwrite">should the image be overwritten if it exists</param>
     /// <returns>list of images, modified if necessary</returns>
     public static List<RemoteImageInfo> AddOrOverwrite(List<RemoteImageInfo> images, ImageType imageType,
-        string url, bool overwrite)
+        string url)
     {
         var result = new List<RemoteImageInfo>(images);
         var image = images.Find(i => i.Type == imageType);
-        var exists = image != null;
-        if (exists)
+        if (image != null)
         {
-            if (!overwrite) return result;
-            result.Remove(image!);
-            result.Add(new RemoteImageInfo
-                { Url = url, Type = imageType, ProviderName = IvInfoConstants.Name });
-        }
-        else
-        {
-            result.Add(new RemoteImageInfo
-                { Url = url, Type = imageType, ProviderName = IvInfoConstants.Name });
+            result.Remove(image);
         }
 
+        result.Add(new RemoteImageInfo { Url = url, Type = imageType, ProviderName = IvInfoConstants.Name });
         return result;
     }
 }

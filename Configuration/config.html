@@ -41,7 +41,7 @@
                 </fieldset>
                 <br/>
                 <fieldset>
-                    <legend>Enabled image providers</legend>
+                    <legend>Enabled image scrapers</legend>
                     <label class="checkboxContainer">
                         <input id="javlibrary_img" is="emby-checkbox" type="checkbox"/>
                         <span>Javlibrary</span>
@@ -55,19 +55,45 @@
                         <span>Gekiyasu</span>
                     </label>
                 </fieldset>
+                <fieldset>
+                    <legend>Scrapers priority (top one is queried first)</legend>
+                    <div class="paperList" id="priority">
+                        <div class="listItem" data-id="javlib" data-value="1" id="prio_javlib">
+                            <span class="material-icons drag_indicator"></span>
+                            <div class="listItemBody">
+                                <div class="listItemBodyText">Javlibrary</div>
+                            </div>
+                        </div>
+                        <div class="listItem" data-id="dmm" data-value="2" id="prio_dmm">
+                            <span class="material-icons drag_indicator"></span>
+                            <div class="listItemBody">
+                                <div class="listItemBodyText">DMM</div>
+                            </div>
+                        </div>
+                        <div class="listItem" data-id="geki" data-value="3" id="prio_geki">
+                            <span class="material-icons drag_indicator"></span>
+                            <div class="listItemBody">
+                                <div class="listItemBodyText">Gekiyasu</div>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
                 <div>
                     <button class="raised button-submit block" is="emby-button" type="submit"><span>Save</span></button>
                 </div>
             </form>
         </div>
     </div>
+    <script src="https://SortableJS.github.io/Sortable/Sortable.js"></script>
     <script type="text/javascript">
-        var PluginConfig = {
+        const PluginConfig = {
             pluginId: "abe0c619-a145-4890-896b-cb1089ade4fe"
         };
 
+        console.log("Start");
+
         document.querySelector('#dmm')
-            .addEventListener('click', function (e) {
+            .addEventListener('click', function () {
                 const enabled = document.querySelector("#dmm").checked;
                 const cb = document.querySelector('#dmm_proxy');
                 const div = document.querySelector('#dmm_proxy_container');
@@ -77,7 +103,8 @@
             });
 
         document.querySelector('.configPage')
-            .addEventListener('pageshow', function (e) {
+            .addEventListener('pageshow', function () {
+                console.log("start");
                 Dashboard.showLoadingMsg();
                 ApiClient.getPluginConfiguration(PluginConfig.pluginId).then(function (config) {
                     document.querySelector('#firstOnly').checked = config.FirstOnly;
@@ -88,29 +115,54 @@
                     document.querySelector('#dmm_img').checked = config.DmmImgEnabled;
                     document.querySelector('#gekiyasu_img').checked = config.GekiyasuImgEnabled;
                     document.querySelector('#dmm_proxy').checked = config.DmmUseProxy;
+                    document.querySelector('#prio_javlib').setAttribute('data-value', config.JavLibraryScraperPriority);
+                    document.querySelector('#prio_dmm').setAttribute('data-value', config.DmmScraperPriority);
+                    document.querySelector('#prio_geki').setAttribute('data-value', config.GekiyasuScraperPriority);
                     Dashboard.hideLoadingMsg();
                 });
+                setTimeout(() => {
+                    const el = document.getElementById('priority');
+                    Sortable.create(el, {
+                        store: {
+                            get: () => {
+                                const order = [];
+                                order[document.querySelector('#prio_javlib').getAttribute('data-value') - 1] = 'javlib';
+                                order[document.querySelector('#prio_dmm').getAttribute('data-value') - 1] = 'dmm';
+                                order[document.querySelector('#prio_geki').getAttribute('data-value') - 1] = 'geki';
+                                return order;
+                            },
+                            set: (sortable) => {
+                                const order = sortable.toArray();
+                                document.querySelector('#prio_javlib').setAttribute('data-value', order.indexOf('javlib') + 1);
+                                document.querySelector('#prio_dmm').setAttribute('data-value', order.indexOf('dmm') + 1);
+                                document.querySelector('#prio_geki').setAttribute('data-value', order.indexOf('geki') + 1);
+                            }
+                        }
+                    });
+                }, 500);
+            });
+
+        document.querySelector('.configForm')
+            .addEventListener('submit', function (e) {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(PluginConfig.pluginId).then(function (config) {
+                    config.FirstOnly = document.querySelector('#firstOnly').checked;
+                    config.JavlibraryScraperEnabled = document.querySelector('#javlibrary').checked;
+                    config.DmmScraperEnabled = document.querySelector('#dmm').checked;
+                    config.GekiyasuScraperEnabled = document.querySelector('#gekiyasu').checked;
+                    config.JavlibraryImgEnabled = document.querySelector('#javlibrary_img').checked;
+                    config.DmmImgEnabled = document.querySelector('#dmm_img').checked;
+                    config.GekiyasuImgEnabled = document.querySelector('#gekiyasu_img').checked;
+                    config.DmmUseProxy = document.querySelector('#dmm_proxy').checked;
+                    config.JavLibraryScraperPriority = document.querySelector('#prio_javlib').getAttribute('data-value') + 1;
+                    config.DmmScraperPriority = document.querySelector('#prio_dmm').getAttribute('data-value') + 1;
+                    config.GekiyasuScraperPriority = document.querySelector('#prio_geki').getAttribute('data-value') + 1;
+                    ApiClient.updatePluginConfiguration(PluginConfig.pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                 });
 
-            
-            document.querySelector('.configForm')
-                .addEventListener('submit', function (e) {
-                    Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(PluginConfig.pluginId).then(function (config) {
-                        config.FirstOnly = document.querySelector('#firstOnly').checked;
-                        config.JavlibraryScraperEnabled = document.querySelector('#javlibrary').checked;
-                        config.DmmScraperEnabled = document.querySelector('#dmm').checked;
-                        config.GekiyasuScraperEnabled = document.querySelector('#gekiyasu').checked;
-                        config.JavlibraryImgEnabled = document.querySelector('#javlibrary_img').checked;
-                        config.DmmImgEnabled = document.querySelector('#dmm_img').checked;
-                        config.GekiyasuImgEnabled = document.querySelector('#gekiyasu_img').checked;
-                        config.DmmUseProxy = document.querySelector('#dmm_proxy').checked;
-                        ApiClient.updatePluginConfiguration(PluginConfig.pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
-                    });
-                    
-                    e.preventDefault();
-                    return false;
-                });
+                e.preventDefault();
+                return false;
+            });
 
     </script>
 </div>
