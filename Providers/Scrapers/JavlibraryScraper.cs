@@ -39,7 +39,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         private static bool FirstOnly => IvInfo.Instance?.Configuration.FirstOnly ?? false;
 
-        public int Priority => 3;
+        public int Priority => IvInfo.Instance?.Configuration.JavLibraryScraperPriority ?? 2;
 
         public bool Enabled => IvInfo.Instance?.Configuration.JavlibraryScraperEnabled ?? false;
         public bool ImgEnabled => IvInfo.Instance?.Configuration.JavlibraryImgEnabled ?? false;
@@ -54,8 +54,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             return await GetSearchResults(resultList, globalId, cancellationToken, FirstOnly);
         }
 
-        public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
-            bool overwrite = false)
+        public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken)
         {
             var scraperId = metadata.Item.GetProviderId(Name);
             var globalId = metadata.Item.GetProviderId(IvInfoConstants.Name) ??
@@ -123,32 +122,32 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 ? -1
                 : float.Parse(scoreText, CultureInfo.InvariantCulture.NumberFormat);
 
-            if (!string.IsNullOrEmpty(titleJa) && (overwrite || string.IsNullOrWhiteSpace(metadata.Item.Name)))
+            if (!string.IsNullOrEmpty(titleJa) && (string.IsNullOrWhiteSpace(metadata.Item.Name)))
                 metadata.Item.Name = titleJa;
-            if (!string.IsNullOrEmpty(title) && (overwrite || string.IsNullOrWhiteSpace(metadata.Item.OriginalTitle)))
+            if (!string.IsNullOrEmpty(title) && (string.IsNullOrWhiteSpace(metadata.Item.OriginalTitle)))
                 metadata.Item.OriginalTitle = title;
-            if (overwrite || metadata.Item.PremiereDate == null) metadata.Item.PremiereDate = releaseDate;
-            if (overwrite || metadata.Item.ProductionYear == null) metadata.Item.ProductionYear = releaseDate.Year;
-            if (score > -1 && (overwrite || metadata.Item.CommunityRating == null))
+            if (metadata.Item.PremiereDate == null) metadata.Item.PremiereDate = releaseDate;
+            if (metadata.Item.ProductionYear == null) metadata.Item.ProductionYear = releaseDate.Year;
+            if (score > -1 && (metadata.Item.CommunityRating == null))
                 metadata.Item.CommunityRating = score;
-            if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.OfficialRating))
+            if (string.IsNullOrWhiteSpace(metadata.Item.OfficialRating))
                 metadata.Item.OfficialRating = "R";
-            if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.ExternalId)) metadata.Item.ExternalId = scraperId;
-            if (!string.IsNullOrEmpty(label) && (overwrite || !metadata.Item.Studios.Contains(label)))
+            if (string.IsNullOrWhiteSpace(metadata.Item.ExternalId)) metadata.Item.ExternalId = scraperId;
+            if (!string.IsNullOrEmpty(label) && (!metadata.Item.Studios.Contains(label)))
                 metadata.Item.AddStudio(label);
-            if (!string.IsNullOrEmpty(maker) && (overwrite || !metadata.Item.Studios.Contains(maker)))
+            if (!string.IsNullOrEmpty(maker) && (!metadata.Item.Studios.Contains(maker)))
                 metadata.Item.AddStudio(maker);
-            if (!string.IsNullOrEmpty(label) && (overwrite || string.IsNullOrEmpty(metadata.Item.CollectionName)))
+            if (!string.IsNullOrEmpty(label) && (string.IsNullOrEmpty(metadata.Item.CollectionName)))
                 metadata.Item.CollectionName = label;
 
-            if (genres != null && (overwrite || metadata.Item.Genres.Length == 0))
+            if (genres != null && (metadata.Item.Genres.Length == 0))
                 foreach (var genre in genres)
                     metadata.Item.AddGenre(genre);
 
-            if (!overwrite && metadata.People != null) return true;
+            if (metadata.People != null) return true;
 
-            if (!string.IsNullOrWhiteSpace(director) && (overwrite || metadata.People == null ||
-                                                         !metadata.People.Exists(p => p.Name == director)))
+            if (!string.IsNullOrWhiteSpace(director) &&
+                (metadata.People == null || !metadata.People.Exists(p => p.Name == director)))
             {
                 metadata.AddPerson(new PersonInfo
                 {
@@ -177,7 +176,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         }
 
         public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
-            ImageType imageType = ImageType.Primary, bool overwrite = false)
+            ImageType imageType = ImageType.Primary)
         {
             _logger.LogDebug("{Name}: searching for image {ImageType}", Name, imageType);
             var result = new List<RemoteImageInfo>();
@@ -188,7 +187,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 return result;
             }
 
-            if (item.ImageInfos.Any(i => i.Type == imageType) && !overwrite)
+            if (item.ImageInfos.Any(i => i.Type == imageType))
             {
                 _logger.LogDebug("{Name}: {ImageType} image already exists, not overwriting", Name, imageType);
                 return result;
@@ -203,7 +202,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             if (string.IsNullOrEmpty(url)) return result;
             if (!url.StartsWith("http")) url = "https:" + url;
 
-            result = IScraper.AddOrOverwrite(result, imageType, url, overwrite);
+            result = IScraper.AddOrOverwrite(result, imageType, url);
 
             _logger.LogDebug("{Name}: image searching finished", Name);
             return result;
