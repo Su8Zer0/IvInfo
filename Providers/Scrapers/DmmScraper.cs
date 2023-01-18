@@ -28,7 +28,6 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         private const string NoPage = "404 Not Found";
         private const string NoResults = "に一致する商品は見つかりませんでした";
         private const string MetadataSelector = "//table[@class='mg-b20']/tr/td[@class='nw']";
-        private const string NoInfo = "----";
         private const string PublishDate = "発売日";
         private const string PublishDateRental = "貸出開始日";
         private const string Performer = "出演者";
@@ -51,7 +50,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         private static bool FirstOnly => IvInfo.Instance?.Configuration.FirstOnly ?? false;
 
-        public int Priority => 1;
+        public int Priority => IvInfo.Instance?.Configuration.DmmScraperPriority ?? 1;
 
         public bool Enabled => IvInfo.Instance?.Configuration.DmmScraperEnabled ?? false;
         public bool ImgEnabled => IvInfo.Instance?.Configuration.DmmImgEnabled ?? false;
@@ -66,8 +65,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             return await GetSearchResults(resultList, globalId, cancellationToken, FirstOnly);
         }
 
-        public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
-            bool overwrite = false)
+        public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken)
         {
             var scraperId = metadata.Item.GetProviderId(Name);
             var globalId = metadata.Item.GetProviderId(IvInfoConstants.Name) ??
@@ -139,26 +137,26 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                     ?.InnerText.Trim();
             }
 
-            if (!string.IsNullOrEmpty(title) && (overwrite || string.IsNullOrWhiteSpace(metadata.Item.Name)))
+            if (!string.IsNullOrEmpty(title) && (string.IsNullOrWhiteSpace(metadata.Item.Name)))
                 metadata.Item.Name = title;
-            if (!string.IsNullOrEmpty(description) && (overwrite || string.IsNullOrWhiteSpace(metadata.Item.Overview)))
+            if (!string.IsNullOrEmpty(description) && (string.IsNullOrWhiteSpace(metadata.Item.Overview)))
                 metadata.Item.Overview = description;
-            if (datePresent && (overwrite || metadata.Item.PremiereDate == null))
+            if (datePresent && (metadata.Item.PremiereDate == null))
                 metadata.Item.PremiereDate = releaseDate;
-            if (datePresent && (overwrite || metadata.Item.ProductionYear == null))
+            if (datePresent && (metadata.Item.ProductionYear == null))
                 metadata.Item.ProductionYear = releaseDate.Year;
-            if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.OfficialRating))
+            if (string.IsNullOrWhiteSpace(metadata.Item.OfficialRating))
                 metadata.Item.OfficialRating = "R";
-            if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.ExternalId)) metadata.Item.ExternalId = scraperId;
-            if (!string.IsNullOrEmpty(label) && (overwrite || !metadata.Item.Studios.Contains(label)))
+            if (string.IsNullOrWhiteSpace(metadata.Item.ExternalId)) metadata.Item.ExternalId = scraperId;
+            if (!string.IsNullOrEmpty(label) && (!metadata.Item.Studios.Contains(label)))
                 metadata.Item.AddStudio(label);
-            if (!string.IsNullOrEmpty(maker) && (overwrite || !metadata.Item.Studios.Contains(maker)))
+            if (!string.IsNullOrEmpty(maker) && (!metadata.Item.Studios.Contains(maker)))
                 metadata.Item.AddStudio(maker);
 
-            if (!string.IsNullOrEmpty(series) && (overwrite || string.IsNullOrEmpty(metadata.Item.CollectionName)))
+            if (!string.IsNullOrEmpty(series) && (string.IsNullOrEmpty(metadata.Item.CollectionName)))
                 metadata.Item.CollectionName = series;
 
-            if (!string.IsNullOrWhiteSpace(director) && (overwrite || !metadata.People.Exists(p => p.Name == director)))
+            if (!string.IsNullOrWhiteSpace(director) && (!metadata.People.Exists(p => p.Name == director)))
             {
                 metadata.AddPerson(new PersonInfo
                 {
@@ -174,7 +172,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         }
 
         public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
-            ImageType imageType = ImageType.Primary, bool overwrite = false)
+            ImageType imageType = ImageType.Primary)
         {
             _logger.LogDebug("{Name}: searching for image {ImageType}", Name, imageType);
             var result = new List<RemoteImageInfo>();
@@ -185,7 +183,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 return result;
             }
 
-            if (item.ImageInfos.Any(i => i.Type == imageType) && !overwrite)
+            if (item.ImageInfos.Any(i => i.Type == imageType))
             {
                 _logger.LogDebug("{Name}: {ImageType} image already exists, not overwriting", Name, imageType);
                 return result;
@@ -219,13 +217,13 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                         ?.GetAttributeValue("src", "") ?? doc.DocumentNode.SelectSingleNode("//img[@class='tdmm']")
                         ?.GetAttributeValue("src", "");
                     if (frontUrl == null) break;
-                    result = IScraper.AddOrOverwrite(result, imageType, GetProxyUrl(frontUrl), overwrite);
+                    result = IScraper.AddOrOverwrite(result, imageType, GetProxyUrl(frontUrl));
                     break;
                 case ImageType.Box:
                     var boxUrl = doc.DocumentNode.SelectSingleNode("//a[@name='package-image']")
                         ?.GetAttributeValue("href", "");
                     if (boxUrl == null) break;
-                    result = IScraper.AddOrOverwrite(result, imageType, GetProxyUrl(boxUrl), overwrite);
+                    result = IScraper.AddOrOverwrite(result, imageType, GetProxyUrl(boxUrl));
                     break;
                 case ImageType.Screenshot:
                     var screenshotNodes = doc.DocumentNode.SelectNodes("//a[@name='sample-image']/img");
