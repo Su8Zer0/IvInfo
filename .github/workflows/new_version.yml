@@ -16,21 +16,21 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
     - name: Setup .NET
-      uses: actions/setup-dotnet@v2.1.0
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
     - name: Get version
       id: get_version
-      run: echo "::set-output name=version::$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)"
+      run: echo "version=$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
       shell: pwsh
+    - name: Test
+      run: echo ${{ steps.get_version.outputs.version }}
     - name: jprm-build
-      uses: oddstr13/jellyfin-plugin-repository-manager@v0.4.2
+      uses: oddstr13/jellyfin-plugin-repository-manager@v0.5.0
       with:
         dotnet-target: net6.0
-    - name: test
-      run: pwd && ls && ls artifacts
     - name: Upload zip artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ivinfo_${{ steps.get_version.outputs.version }}
         path: artifacts/ivinfo_${{ steps.get_version.outputs.version }}.zip
@@ -39,14 +39,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Get version
         id: get_version
-        run: echo "::set-output name=version::$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)"
+        run: echo "version=$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
         shell: pwsh
+      - name: Create changelog text
+        id: changelog
+        uses: loopwerk/tag-changelog@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Download build
         id: download_artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: ivinfo_${{ steps.get_version.outputs.version }}
           path: release
@@ -58,11 +63,12 @@ jobs:
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
           release_name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
-          draft: true
           prerelease: false
           body: |
             ## Release
             Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
+            ## Changes
+            ${{ steps.changelog.outputs.changes }}
       - name: Upload Release
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
@@ -73,3 +79,9 @@ jobs:
           asset_path: release/ivinfo_${{ steps.get_version.outputs.version }}.zip
           asset_name: Jellyfin.Plugin.IvInfo_${{ steps.get_version.outputs.version }}.zip
           asset_content_type: application/zip
+      - name: Post release to repo
+        id: post-to-repo
+        uses: CamiloGarciaLaRotta/watermelon-http-client@v1.5
+        with:
+          url: https://subzeropl.duckdns.org/jf-plugin-repo/release.php?id=${{ steps.create_release.outputs.id }}
+          fail_fast: true
