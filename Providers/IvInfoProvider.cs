@@ -10,185 +10,243 @@ using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
-using MediaBrowser.Controller.Sorting;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Extensions;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.IvInfo.Providers
+namespace Jellyfin.Plugin.IvInfo.Providers;
+
+/// <summary>
+///     IV Info Provider.
+/// </summary>
+public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemoteImageProvider
 {
-    /// <summary>
-    ///     IV Info Provider.
-    /// </summary>
-    public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemoteImageProvider
+    private const string IdPattern = @".*?(\w{2,5}-\d{3,6}\w?).*";
+
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<IvInfoProvider> _logger;
+
+    public IvInfoProvider(IHttpClientFactory httpClientFactory, ILogger<IvInfoProvider> logger)
     {
-        private const string IdPattern = @".*?(\w{2,5}-\d{3,6}\w?).*";
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
+    }
 
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<IvInfoProvider> _logger;
+    public bool Supports(BaseItem item)
+    {
+        return item is Movie;
+    }
 
-        public IvInfoProvider(IHttpClientFactory httpClientFactory, ILogger<IvInfoProvider> logger)
+    public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
+    {
+        yield return ImageType.Primary;
+        yield return ImageType.Box;
+        yield return ImageType.Screenshot;
+    }
+
+    public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("GetImages");
+        _logger.LogDebug("Params: Item:{Item}", item);
+
+        var result = new List<RemoteImageInfo>();
+        var language = item.GetPreferredMetadataLanguage();
+        var id = item.GetProviderId(Name);
+        _logger.LogDebug("Global Id: {Id}", id);
+
+        if (string.IsNullOrWhiteSpace(id))
         {
-            _httpClientFactory = httpClientFactory;
-            _logger = logger;
-        }
-
-        public bool Supports(BaseItem item)
-        {
-            return item is Movie;
-        }
-
-        public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
-        {
-            yield return ImageType.Primary;
-            yield return ImageType.Box;
-            yield return ImageType.Screenshot;
-        }
-
-        public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
-        {
-            _logger.LogDebug("GetImages");
-            _logger.LogDebug("Params: Item:{Item}", item);
-
-            var result = new List<RemoteImageInfo>();
-            var language = item.GetPreferredMetadataLanguage();
-            var id = item.GetProviderId(Name);
-            _logger.LogDebug("Id: {Id}", id);
-
-            if (string.IsNullOrWhiteSpace(id))
-            {
-                _logger.LogError("No id found");
-                return result.OrderByLanguageDescending(language);
-            }
-
-            var scrapers = GetImageScrapers();
-
-            foreach (var scraper in scrapers)
-            {
-                foreach (var imageType in scraper.HandledImageTypes())
-                {
-                    try
-                    {
-                        result.AddRange(await scraper.GetImages(item, cancellationToken, imageType));
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError(e, "Error getting images from scraper {Scraper}\n{Error}", scraper, e.Message);
-                    }
-                }
-            }
-
+            _logger.LogError("No global id found");
             return result.OrderByLanguageDescending(language);
         }
 
-        public string Name => IvInfoConstants.Name;
+        var scrapers = GetImageScrapers();
 
-        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo,
-            CancellationToken cancellationToken)
+        foreach (var scraper in scrapers)
+        foreach (var imageType in scraper.HandledImageTypes())
+            try
+            {
+                result.AddRange(await scraper.GetImages(item, cancellationToken, imageType));
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error getting images from scraper {Scraper}\n{Error}", scraper, e.Message);
+            }
+
+        return result.OrderByLanguageDescending(language);
+    }
+
+    public string Name => IvInfoConstants.Name;
+
+    private static List<RemoteSearchResult> MergeResults(List<RemoteSearchResult> list)
+    {
+        if (list.Count <= 1) return list;
+        var current = 0;
+        var next = 1;
+        while (true)
         {
-            _logger.LogDebug("GetSearchResults");
-            _logger.LogDebug("Params: Name:{Name}, Path:{Path}", searchInfo.Name, searchInfo.Path);
-            var result = new List<RemoteSearchResult>();
-            var id = GetId(searchInfo);
-            if (string.IsNullOrEmpty(id)) return result.OrderByString(_ => "");
-            var scrapers = GetEnabledScrapers();
-            foreach (var scraper in scrapers)
-                result.AddRange(await scraper.GetSearchResults(result, searchInfo, cancellationToken));
+            if (current + 1 > list.Count || next + 1 > list.Count) break;
+            var first = list[current];
+            var second = list[next];
+            var globalIdFirst = first.GetProviderId(IvInfoConstants.Name)?.Split('|')[0] ?? string.Empty;
+            var globalIdSecond = second.GetProviderId(IvInfoConstants.Name)?.Split('|')[0] ?? string.Empty;
+            var l = new F23.StringSimilarity.NormalizedLevenshtein();
+            var sim = l.Similarity(first.Name, second.Name);
+            if (sim > 0.3 && globalIdFirst.Equals(globalIdSecond))
+            {
+                foreach (var (name, value) in second.ProviderIds)
+                {
+                    if (string.IsNullOrEmpty(first.GetProviderId(name)))
+                        first.SetProviderId(name, value);
+                }
 
-            return result.OrderByString(_ => "");
+                if (string.IsNullOrEmpty(first.Overview) && !string.IsNullOrEmpty(second.Overview))
+                    first.Overview = second.Overview;
+                if (string.IsNullOrEmpty(first.ImageUrl) && !string.IsNullOrEmpty(second.ImageUrl))
+                    first.ImageUrl = second.ImageUrl;
+                list.Remove(second);
+                if (list.Count <= 1) break;
+            }
+            else
+            {
+                if (next + 1 == list.Count)
+                {
+                    if (current + 1 == list.Count)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        current++;
+                        next = current + 1;
+                    }
+                }
+                else
+                {
+                    next++;
+                }
+            }
         }
 
-        public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
+        return list;
+    }
+
+    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("GetSearchResults");
+        _logger.LogDebug("Params: Name:{Name}, Path:{Path}", searchInfo.Name, searchInfo.Path);
+        var result = new List<RemoteSearchResult>();
+        var id = GetId(searchInfo);
+        if (string.IsNullOrEmpty(id)) return result;
+        var scrapers = GetEnabledScrapers();
+        foreach (var scraper in scrapers)
         {
-            _logger.LogDebug("GetMetadata");
-            _logger.LogDebug(
-                "Params: Name:{Name}, Path:{Path}, Year:{Year}, IndexNumber:{IndexNumber}, ProviderIds{Ids}",
-                info.Name, info.Path, info.Year, info.IndexNumber, info.ProviderIds);
-            var result = new MetadataResult<Movie>
-            {
-                HasMetadata = false
-            };
-            var id = GetId(info);
-            _logger.LogDebug("Parsed id:{Id}", id);
+            result = (List<RemoteSearchResult>)await scraper.GetSearchResults(result, searchInfo, cancellationToken);
+        }
 
-            if (string.IsNullOrWhiteSpace(id))
-            {
-                _logger.LogError("Id could not be determined ({Name})", info.Name);
-                return result;
-            }
+        _logger.LogDebug("Found {Num} results", result.Count);
 
-            result.Item = new Movie
-            {
-                Path = info.Path,
-                ProviderIds = info.ProviderIds
-            };
-            result.Item.SetProviderId(Name, id);
+        result = MergeResults(result);
 
-            var scrapers = GetEnabledScrapers();
-            foreach (var scraper in scrapers)
-            {
-                try
-                {
-                    result.HasMetadata |= await scraper.FillMetadata(result, cancellationToken);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "GetMetadata error, scraper {Scraper}: {Message}", scraper, e.Message);
-                }
-            }
+        _logger.LogDebug("Results after merging: {Num}", result.Count);
 
+        return result;
+    }
+
+    public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("GetMetadata");
+        _logger.LogDebug(
+            "Params: Name:{Name}, Path:{Path}, Year:{Year}, IndexNumber:{IndexNumber}, ProviderIds{Ids}",
+            info.Name, info.Path, info.Year, info.IndexNumber, info.ProviderIds);
+        var result = new MetadataResult<Movie>
+        {
+            HasMetadata = false
+        };
+        var id = info.GetProviderId(IvInfoConstants.Name) ?? (info.IsAutomated ? string.Empty : GetId(info));
+        _logger.LogDebug("Global id: {Id}", id);
+        if (id.Contains('|'))
+        {
+            id = id.Split('|')[0];
+        }
+
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            _logger.LogError("Global Id could not be determined (Name: {Name}, Path: {Path})", info.Name,
+                info.Path);
             return result;
         }
 
-        public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
+        result.Item = new Movie
         {
-            _logger.LogDebug("GetImageResponse");
-            _logger.LogDebug("Params: url:{Url}", url);
-            return _httpClientFactory.CreateClient(NamedClient.Default).GetAsync(new Uri(url), cancellationToken);
-        }
+            Path = info.Path,
+            ProviderIds = info.ProviderIds
+        };
+        result.Item.SetProviderId(Name, id);
 
-        public static string GetId(ItemLookupInfo info)
-        {
-            var id = info.GetProviderId(IvInfoConstants.Name) ?? ParseId(info);
-            return id;
-        }
+        var scrapers = GetEnabledScrapers();
+        foreach (var scraper in scrapers)
+            try
+            {
+                result.HasMetadata |= await scraper.FillMetadata(result, info, cancellationToken);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "GetMetadata error, scraper {Scraper}: {Message}", scraper, e.Message);
+            }
 
-        private static string ParseId(ItemLookupInfo info)
-        {
-            if (!string.IsNullOrEmpty(info.Path)) return Regex.Match(info.Path, IdPattern).Groups[1].Value;
+        return result;
+    }
 
-            return !string.IsNullOrEmpty(info.Name) ? Regex.Match(info.Name, IdPattern).Groups[1].Value : string.Empty;
-        }
+    public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("GetImageResponse");
+        _logger.LogDebug("Params: url:{Url}", url);
+        return _httpClientFactory.CreateClient(NamedClient.Default).GetAsync(new Uri(url), cancellationToken);
+    }
 
-        private IEnumerable<IScraper> GetAllScrapers()
-        {
-            var list = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes())
-                .Where(x => typeof(IScraper).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract)
-                .ToList();
-            List<IScraper> objects = list.FindAll(t => t.GetConstructor(new[] { typeof(ILogger) }) != null)
-                .ConvertAll(t =>
-                {
-                    var obj = t.GetConstructor(new[] { typeof(ILogger) })!.Invoke(new object?[]
-                        { _logger }) as IScraper;
-                    return obj;
-                })!;
-            objects.Sort((x, y) => x.Priority - y.Priority);
-            return objects;
-        }
+    public static string GetId(ItemLookupInfo info)
+    {
+        var id = info.GetProviderId(IvInfoConstants.Name) ?? ParseId(info);
+        return id;
+    }
 
-        private IEnumerable<IScraper> GetEnabledScrapers()
-        {
-            var list = GetAllScrapers().ToList();
-            list.RemoveAll(s => !s.Enabled);
-            return list;
-        }
+    private static string ParseId(ItemLookupInfo info)
+    {
+        if (!string.IsNullOrEmpty(info.Path)) return Regex.Match(info.Path, IdPattern).Groups[1].Value;
 
-        private IEnumerable<IScraper> GetImageScrapers()
-        {
-            var list = GetAllScrapers().ToList();
-            list.RemoveAll(s => !s.ImgEnabled);
-            return list;
-        }
+        return !string.IsNullOrEmpty(info.Name) ? Regex.Match(info.Name, IdPattern).Groups[1].Value : string.Empty;
+    }
+
+    private IEnumerable<IScraper> GetAllScrapers()
+    {
+        var list = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes())
+            .Where(x => typeof(IScraper).IsAssignableFrom(x) && x is { IsInterface: false, IsAbstract: false })
+            .ToList();
+        List<IScraper> objects = list.FindAll(t => t.GetConstructor(new[] { typeof(ILogger) }) != null)
+            .ConvertAll(t =>
+            {
+                var obj = t.GetConstructor(new[] { typeof(ILogger) })!.Invoke(new object?[]
+                    { _logger }) as IScraper;
+                return obj;
+            })!;
+        objects.Sort((x, y) => x.Priority - y.Priority);
+        return objects;
+    }
+
+    private IEnumerable<IScraper> GetEnabledScrapers()
+    {
+        var list = GetAllScrapers().ToList();
+        list.RemoveAll(s => !s.Enabled);
+        return list;
+    }
+
+    private IEnumerable<IScraper> GetImageScrapers()
+    {
+        var list = GetAllScrapers().ToList();
+        list.RemoveAll(s => !s.ImgEnabled || !s.Enabled);
+        return list;
     }
 }
