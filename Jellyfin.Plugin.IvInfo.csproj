@@ -2,13 +2,14 @@
 
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
-        <PackageVersion>0.1.5.4</PackageVersion>
-        <AssemblyVersion>0.1.5.4</AssemblyVersion>
-        <FileVersion>0.1.5.4</FileVersion>
+        <PackageVersion>0.1.5.6</PackageVersion>
+        <AssemblyVersion>0.1.5.6</AssemblyVersion>
+        <FileVersion>0.1.5.6</FileVersion>
         <Nullable>enable</Nullable>
         <Authors>SubZeroPL</Authors>
         <PackageProjectUrl>https://github.com/SubZeroPL/Jellyfin.Plugin.IvInfo</PackageProjectUrl>
         <LangVersion>10</LangVersion>
+        <UserSecretsId>c3f0a03b-a799-4f5f-ad9b-c0eb9135e8cf</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,11 +17,15 @@
         <PackageReference Include="Jellyfin.Controller" Version="10.8.4"/>
         <PackageReference Include="Jellyfin.Model" Version="10.8.4"/>
         <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0"/>
+        <PackageReference Include="String.Similarity" Version="3.0.0" />
     </ItemGroup>
 
     <ItemGroup>
         <None Remove="Configuration\config.html"/>
+        <None Remove="Configuration\config.js"/>
         <EmbeddedResource Include="Configuration\config.html"/>
+        <EmbeddedResource Include="Configuration\config.js"/>
     </ItemGroup>
+
 
 </Project>
