@@ -5,6 +5,17 @@ on:
     tags:
     - v*
   workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: 'Run the build with tmate debugging enabled'
+        required: false
+        default: false
+      draft_release:
+        type: boolean
+        description: 'Create draft release'
+        required: false
+        default: false
 
 jobs:
   build:
@@ -13,73 +24,68 @@ jobs:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
     steps:
+    # Enable tmate debugging of manually-triggered workflows if the input option was provided
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
     - name: Checkout
       uses: actions/checkout@v3
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
+    - name: Setup Python
+      uses: actions/setup-python@v4.7.0
+      with:
+        python-version: 3.9.*
+    - name: Install jprm
+      run: pip install --user jprm
+      shell: sh
+    - name: Init repo
+      run: mkdir repo && cd repo && wget https://subzeropl.duckdns.org/jf-plugin-repo/manifest.json && cd ..
+      shell: sh
+    - name: Build plugin
+      run: jprm --verbosity debug plugin build --output ./repo --dotnet-framework net6.0 .
+      shell: sh
     - name: Get version
       id: get_version
       run: echo "version=$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
       shell: pwsh
-    - name: jprm-build
-      uses: oddstr13/jellyfin-plugin-repository-manager@v1.0.11
+    - name: Add to manifest
+      run: jprm --verbosity debug repo add --plugin-url https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/ivinfo_${{ steps.get_version.outputs.version }}.zip ./repo/ ./repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
+      shell: sh
+    - name: Create changelog text
+      id: changelog
+      uses: loopwerk/tag-changelog@v1
       with:
-        dotnet-target: net6.0
-    - name: Upload zip artifact
-      uses: actions/upload-artifact@v3
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create Draft Release
+      id: create_draft_release
+      uses: ncipollo/release-action@v1.13.0
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.draft_release }}
       with:
-        name: ivinfo_${{ steps.get_version.outputs.version }}
-        path: artifacts/ivinfo_${{ steps.get_version.outputs.version }}.zip
-  release:
-    needs: [ build ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Get version
-        id: get_version
-        run: echo "version=$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
-        shell: pwsh
-      - name: Create changelog text
-        id: changelog
-        uses: loopwerk/tag-changelog@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download build
-        id: download_artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: ivinfo_${{ steps.get_version.outputs.version }}
-          path: release
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          release_name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
-          prerelease: false
-          body: |
-            ## Release
-            Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
-            ## Changes
-            ${{ steps.changelog.outputs.changes }}
-      - name: Upload Release
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/ivinfo_${{ steps.get_version.outputs.version }}.zip
-          asset_name: Jellyfin.Plugin.IvInfo_${{ steps.get_version.outputs.version }}.zip
-          asset_content_type: application/zip
-      - name: Post release to repo
-        id: post-to-repo
-        uses: CamiloGarciaLaRotta/watermelon-http-client@v1.5
-        with:
-          url: https://subzeropl.duckdns.org/jf-plugin-repo/release.php?id=${{ steps.create_release.outputs.id }}
-          fail_fast: true
+        artifacts: repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
+        name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
+        tag: v0.1.6.1
+        prerelease: false
+        draft: true
+        generateReleaseNotes: true
+        body: |
+          ## Release
+          Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
+    - name: Create Release
+      id: create_release
+      uses: ncipollo/release-action@v1.13.0
+      if: ${{ !inputs.draft_release }}
+      with:
+        artifacts: repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
+        name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
+        prerelease: false
+        draft: false
+        generateReleaseNotes: true
+        body: |
+          ## Release
+          Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
+    - name: Post release to repo
+      run: echo TODO
+      shell: sh
