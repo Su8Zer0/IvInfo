@@ -9,6 +9,14 @@
     "versions": [
       {
         "checksum": "",
+        "changelog": "small fix for JavLibrary entries without pictures",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.6.1.zip",
+        "timestamp": "2023-09-27T00:00:00.0000000Z",
+        "version": "0.1.6.1"
+      },
+      {
+        "checksum": "A7DB3FED5EB682CF54AF862C41DB38B9",
         "changelog": "added external ids, remade searching, merging of results from different scrapers, extended configuration page, moved configuration page js to separate file, dmm scraper currently not working (no proxy)",
         "targetAbi": "10.8.0.0",
         "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.6.0.zip",
