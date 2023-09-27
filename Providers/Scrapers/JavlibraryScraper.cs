@@ -29,6 +29,7 @@ public class JavlibraryScraper : IScraper
     private const string BaseUrlJp = DomainUrlJp + SearchUrl;
     private const string NoResults = "ご指定の検索条件に合う項目がありませんでした";
     private const string MultipleResults = "品番検索結果";
+    private const string NoImage = "img/noimage";
 
     private readonly ILogger _logger;
 
@@ -147,7 +148,7 @@ public class JavlibraryScraper : IScraper
         var doc = await GetSingleResult(scraperId, cancellationToken);
         var url = doc.DocumentNode?.SelectSingleNode("//img[@id='video_jacket_img']")
             ?.GetAttributeValue("src", null);
-        if (string.IsNullOrEmpty(url)) return result;
+        if (string.IsNullOrEmpty(url) || url.Contains(NoImage)) return result;
         if (!url.StartsWith("http")) url = "https:" + url;
 
         if (imageType == ImageType.Primary) url = url.Replace("pl.jpg", "ps.jpg");

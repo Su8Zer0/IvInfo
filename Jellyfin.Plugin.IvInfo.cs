@@ -43,7 +43,7 @@ public class IvInfo : BasePlugin<IvInfoPluginConfiguration>, IHasWebPages
 
     public override PluginInfo GetPluginInfo()
     {
-        return new PluginInfo(Name, new Version(0, 1, 6, 0), "Idol Video metadata provider", Id,
+        return new PluginInfo(Name, new Version(0, 1, 6, 1), "Idol Video metadata provider", Id,
             true);
     }
 }
