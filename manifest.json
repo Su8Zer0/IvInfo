@@ -8,7 +8,7 @@
     "overview": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
     "versions": [
       {
-        "checksum": "",
+        "checksum": "32FE1299F6BA49B56938EDF19B80CDCC",
         "changelog": "small fix for JavLibrary entries without pictures",
         "targetAbi": "10.8.0.0",
         "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.6.1.zip",
