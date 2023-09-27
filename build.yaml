@@ -1,21 +1,20 @@
 ---
 name: "IvInfo"
 guid: "abe0c619-a145-4890-896b-cb1089ade4fe"
-version: "0.1.6.0"
+version: "0.1.6.1"
 targetAbi: "10.8.0.0"
 framework: "net6.0"
 owner: "SubZeroPL"
 overview: "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp"
 description: >
-  Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp
-
+  Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp. 
+  Fetches video metadata and cover/box/screenshot images. 
+  DMM scraper has to be run from japanese IP otherwise it will not find most of the videos.
+  
 category: "Metadata"
 artifacts:
   - "Jellyfin.Plugin.IvInfo.dll"
+  - "HtmlAgilityPack.dll"
+  - "F23.StringSimilarity.dll"
 changelog: |-
-  - added external ids
-  - remade searching
-  - merging of results from different scrapers
-  - extended configuration page
-  - moved configuration page js to separate file
-  - dmm scraper currently not working (no proxy)
+  - small fix for JavLibrary entries without pictures

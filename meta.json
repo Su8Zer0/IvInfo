@@ -1,14 +1,14 @@
 {
   "category": "Metadata",
-  "changelog": "scrapers overhaul",
-  "description": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
+  "changelog": "small fix for JavLibrary entries without pictures",
+  "description": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp.\nFetches video metadata and cover/box/screenshot images.\nDMM scraper has to be run from japanese IP otherwise it will not find most of the videos.",
   "guid": "abe0c619-a145-4890-896b-cb1089ade4fe",
   "name": "IvInfo",
   "overview": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
   "owner": "SubZeroPL",
   "targetAbi": "10.8.0.0",
   "timestamp": "2023-01-14T00:00:00.0000000Z",
-  "version": "0.1.6.0",
+  "version": "0.1.6.1",
   "status": "Active",
   "autoUpdate": true
 }
