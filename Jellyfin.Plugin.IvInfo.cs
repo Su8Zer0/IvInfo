@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using System.Text.Json;
 using Jellyfin.Plugin.IvInfo.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
@@ -43,7 +46,18 @@ public class IvInfo : BasePlugin<IvInfoPluginConfiguration>, IHasWebPages
 
     public override PluginInfo GetPluginInfo()
     {
-        return new PluginInfo(Name, new Version(0, 1, 6, 1), "Idol Video metadata provider", Id,
-            true);
+        try
+        {
+            var thisAssem = typeof(IvInfo).Assembly;
+            var thisAssemName = thisAssem.GetName();
+            var ver = thisAssemName.Version ?? new Version("");
+            return new PluginInfo(Name, ver, IvInfoConstants.Description, Id, true);
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine($"Couldn't read version info from assembly\n{e.Message}");
+        }
+        
+        return new PluginInfo(Name, Version, IvInfoConstants.Description, Id, true);
     }
 }
