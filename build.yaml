@@ -1,6 +1,6 @@
 name: "IvInfo"
 guid: "abe0c619-a145-4890-896b-cb1089ade4fe"
-version: "0.1.6.1"
+version: "0.1.6.2"
 targetAbi: "10.8.0.0"
 framework: "net6.0"
 owner: "SubZeroPL"
@@ -16,4 +16,4 @@ artifacts:
   - "HtmlAgilityPack.dll"
   - "F23.StringSimilarity.dll"
 changelog: |
-  small fix for JavLibrary entries without pictures
+  CI changes
