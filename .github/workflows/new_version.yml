@@ -24,7 +24,6 @@ jobs:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
     steps:
-    # Enable tmate debugging of manually-triggered workflows if the input option was provided
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
       if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
@@ -89,3 +88,4 @@ jobs:
     - name: Post release to repo
       run: curl -v -F plugin_name=Jellyfin.Plugin.IvInfo -F zip_file=@repo/ivinfo_${{ steps.get_version.outputs.version }}.zip -F manifest_file=@repo/manifest.json https://subzeropl.duckdns.org/jf-plugin-repo/release.php
       shell: sh
+    # TODO add modified manifest to repo
