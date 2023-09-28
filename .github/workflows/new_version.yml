@@ -11,6 +11,11 @@ on:
         description: 'Run the build with tmate debugging enabled'
         required: false
         default: false
+      draft_release:
+        type: boolean
+        description: 'Create draft release'
+        required: false
+        default: false
 
 jobs:
   build:
@@ -54,23 +59,33 @@ jobs:
       uses: loopwerk/tag-changelog@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Create Release
-      id: create_release
+    - name: Create Draft Release
+      id: create_draft_release
       uses: ncipollo/release-action@v1.13.0
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.draft_release }}
       with:
         artifacts: repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
         name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
+        tag: v0.1.6.1
         prerelease: false
         draft: true
         generateReleaseNotes: true
         body: |
           ## Release
           Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
-          ## Changes
-          ${{ steps.changelog.outputs.changes }}
-    - name: Post release to repo
-      id: post-to-repo
-      uses: CamiloGarciaLaRotta/watermelon-http-client@v1.5
+    - name: Create Release
+      id: create_release
+      uses: ncipollo/release-action@v1.13.0
+      if: ${{ !inputs.draft_release }}
       with:
-        url: https://subzeropl.duckdns.org/jf-plugin-repo/release.php
-        fail_fast: true
+        artifacts: repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
+        name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
+        prerelease: false
+        draft: false
+        generateReleaseNotes: true
+        body: |
+          ## Release
+          Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
+    - name: Post release to repo
+      run: echo TODO
+      shell: sh
