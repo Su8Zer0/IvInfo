@@ -87,5 +87,5 @@ jobs:
           ## Release
           Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
     - name: Post release to repo
-      run: echo TODO
+      run: curl -v -F plugin_name=Jellyfin.Plugin.IvInfo -F zip_file=@repo/ivinfo_${{ steps.get_version.outputs.version }}.zip -F manifest_file=@repo/manifest.json https://subzeropl.duckdns.org/jf-plugin-repo/release.php
       shell: sh
