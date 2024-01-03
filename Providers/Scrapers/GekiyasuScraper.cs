@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using HtmlAgilityPack;
+using AngleSharp;
+using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
+using AngleSharp.Io;
+using AngleSharp.XPath;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
@@ -64,7 +67,7 @@ public class GekiyasuScraper : IScraper
             return false;
         }
 
-        HtmlDocument doc;
+        IDocument? doc;
         if (scraperId == null)
         {
             _logger.LogDebug("{Name}: no scraper id, searching for global id: {Id}", Name, globalId);
@@ -100,7 +103,7 @@ public class GekiyasuScraper : IScraper
             doc = await GetSingleResult(scraperId, cancellationToken);
         }
 
-        if (string.IsNullOrEmpty(doc.Text))
+        if (string.IsNullOrEmpty(doc?.Body?.Text()))
         {
             _logger.LogDebug("{Name}: searching returned empty page, error?", Name);
             return false;
@@ -108,14 +111,14 @@ public class GekiyasuScraper : IScraper
 
         scraperId = GetScraperId(doc);
 
-        var title = doc.DocumentNode.SelectSingleNode("//div[@class='b-title']/strong")?.InnerText;
+        var title = doc.Body.SelectSingleNode("//div[@class='b-title']/strong")?.Text();
         var datePresent = DateTime.TryParse(
-            doc.DocumentNode.SelectSingleNode("//div[@class='b-releasedate']/span")?.InnerText,
+            doc.Body.SelectSingleNode("//div[@class='b-releasedate']/span")?.Text(),
             out var releaseDate);
-        var description = doc.DocumentNode.SelectSingleNode("//div[@id='detailarea']/div[@class='well']/span")
-            ?.InnerText;
-        var maker = doc.DocumentNode.SelectNodes("//ul[@class='b-relative']/li/a")
-            ?.Where(node => node.InnerText == MakerLbl).FirstOrDefault()?.ParentNode?.LastChild?.InnerText;
+        var description = doc.Body.SelectSingleNode("//div[@id='detailarea']/div[@class='well']/span")
+            ?.Text();
+        var maker = doc.Body.SelectNodes("//ul[@class='b-relative']/li/a")
+            ?.Where(node => node.Text() == MakerLbl).FirstOrDefault()?.Parent?.LastChild?.Text();
 
         if (!string.IsNullOrEmpty(title) && string.IsNullOrWhiteSpace(metadata.Item.Name))
             metadata.Item.Name = title;
@@ -159,16 +162,17 @@ public class GekiyasuScraper : IScraper
         if (string.IsNullOrEmpty(scraperId)) return result;
 
         var url = BaseUrl + scraperId;
-        var html = await GetHtml(url, cancellationToken);
-        var doc = new HtmlDocument();
-        doc.LoadHtml(html);
+        var doc = await GetHtml(url, cancellationToken);
 
-        if (doc.DocumentNode.InnerText.Contains(NoResults)) return result;
+        if (doc?.Body?.Text() == null) return result;
 
-        var thumbUrl = BaseUrl + doc.DocumentNode.SelectSingleNode("//a[@class='thumbnail']")
-            .GetAttributeValue("href", "");
-        var boxUrl = BaseUrl + doc.DocumentNode.SelectSingleNode("//img[@class='img-responsive']")
-            .GetAttributeValue("src", "");
+        if (doc.Body.Text().Contains(NoResults)) return result;
+
+        var thumbUrl = BaseUrl +
+                       (doc.Body.SelectSingleNode("//a[@class='thumbnail']") as IHtmlAnchorElement)?.GetAttribute(
+                           "href");
+        var boxUrl = BaseUrl + (doc.Body.SelectSingleNode("//img[@class='img-responsive']") as IHtmlAnchorElement)
+            ?.GetAttribute("src");
 
         switch (imageType)
         {
@@ -211,15 +215,16 @@ public class GekiyasuScraper : IScraper
     {
         var localResultList = new List<RemoteSearchResult>(resultList);
         var (multiple, doc) = await GetSearchResultsPage(globalId, cancellationToken);
-        if (string.IsNullOrEmpty(doc.Text)) return localResultList;
+        if (string.IsNullOrEmpty(doc?.Body?.Text())) return localResultList;
         if (multiple)
         {
-            var nodeCollection = doc.DocumentNode.SelectNodes(Selector) ?? new HtmlNodeCollection(null);
+            var nodeCollection = doc.Body.SelectNodes(Selector) ?? new List<INode>();
             foreach (var node in nodeCollection)
             {
-                var scraperId = node.ChildNodes.FindFirst("a").GetAttributeValue("href", "").Trim('/');
-                var title = node.ChildNodes.FindFirst("p").InnerText;
-                var imgUrl = BaseUrl + node.ChildNodes.FindFirst("a").FirstChild.GetAttributeValue("src", "");
+                var scraperId = node.ChildNodes.QuerySelector("a")?.Attributes.GetNamedItem("href")?.Value.Trim('/');
+                if (string.IsNullOrEmpty(scraperId)) continue;
+                var title = node.ChildNodes.QuerySelector("p")?.Text();
+                var imgUrl = BaseUrl + node.ChildNodes.QuerySelector("a")?.Attributes.GetNamedItem("src")?.Value;
                 var nextIndex = localResultList.Count > 0 ? localResultList.Max(r => r.IndexNumber ?? 0) + 1 : 1;
                 var result = new RemoteSearchResult
                 {
@@ -241,11 +246,10 @@ public class GekiyasuScraper : IScraper
             var scraperId = GetFirstResultId(doc);
             if (string.IsNullOrEmpty(scraperId)) return localResultList;
             var html = await GetHtml(BaseUrl + scraperId, cancellationToken);
-            if (string.IsNullOrEmpty(html)) return localResultList;
-            doc.LoadHtml(html);
-            var title = doc.DocumentNode.SelectSingleNode("//div[@class='b-title']/strong")?.InnerText;
-            var imgUrl = BaseUrl + doc.DocumentNode.SelectSingleNode("//a[@class='thumbnail']")
-                .GetAttributeValue("href", "");
+            if (string.IsNullOrEmpty(html?.Body?.Text())) return localResultList;
+            var title = html.Body.SelectSingleNode("//div[@class='b-title']/strong")?.Text();
+            var imgUrl = BaseUrl + (html.Body.SelectSingleNode("//a[@class='thumbnail']") as IHtmlAnchorElement)
+                ?.Attributes.GetNamedItem("href")?.Value;
             var nextIndex = localResultList.Count > 0 ? localResultList.Max(r => r.IndexNumber ?? 0) + 1 : 1;
             var result = new RemoteSearchResult
             {
@@ -259,15 +263,15 @@ public class GekiyasuScraper : IScraper
             result.SetProviderId(IvInfoConstants.Name, $"{globalId}|{scraperId}");
             localResultList.Add(result);
         }
-        
+
         _logger.LogDebug("{Name}: Found {Num} results", Name, localResultList.Count);
 
         return localResultList;
     }
 
-    private static bool HasMultipleResults(HtmlDocument doc)
+    private static bool HasMultipleResults(IDocument doc)
     {
-        var results = doc.DocumentNode.SelectNodes(Selector);
+        var results = doc.Body.SelectNodes(Selector);
         return results.Count > 1;
     }
 
@@ -278,19 +282,18 @@ public class GekiyasuScraper : IScraper
     /// <param name="globalId">global id</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>bool, HtmlDocument pair</returns>
-    private async Task<(bool, HtmlDocument)> GetSearchResultsPage(string globalId,
+    private async Task<(bool, IDocument?)> GetSearchResultsPage(string globalId,
         CancellationToken cancellationToken)
     {
         _logger.LogDebug("{Name}: searching for id: {Id}", Name, globalId);
-        var doc = new HtmlDocument();
-        if (string.IsNullOrEmpty(globalId)) return (false, doc);
+        if (string.IsNullOrEmpty(globalId)) return (false, null);
         var url = string.Format(SearchUrl, globalId);
-        var html = await GetHtml(url, cancellationToken);
-        doc.LoadHtml(html);
-        if (string.IsNullOrEmpty(doc.Text)) return (false, doc);
+        var doc = await GetHtml(url, cancellationToken);
+        if (doc?.Body?.Text() == null) return (false, null);
+        if (string.IsNullOrEmpty(doc.Body.Text())) return (false, doc);
 
-        return doc.DocumentNode.InnerText.Contains(NoResults)
-            ? (false, new HtmlDocument())
+        return doc.Body.Text().Contains(NoResults)
+            ? (false, null)
             : (HasMultipleResults(doc), doc);
     }
 
@@ -300,90 +303,91 @@ public class GekiyasuScraper : IScraper
     /// <param name="scraperId">scraper id</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>page for id</returns>
-    private async Task<HtmlDocument> GetSingleResult(string scraperId, CancellationToken cancellationToken)
+    private async Task<IDocument?> GetSingleResult(string scraperId, CancellationToken cancellationToken)
     {
         _logger.LogDebug("{Name}: getting page for id: {Id}", Name, scraperId);
-        var doc = new HtmlDocument();
-        if (string.IsNullOrEmpty(scraperId)) return doc;
+        if (string.IsNullOrEmpty(scraperId)) return null;
         var url = BaseUrl + scraperId;
-        var html = await GetHtml(url, cancellationToken);
-        doc.LoadHtml(html);
-        return doc;
+        return await GetHtml(url, cancellationToken);
     }
 
-    private static string GetFirstResultId(HtmlDocument doc)
+    private static string GetFirstResultId(IDocument? doc)
     {
-        return string.IsNullOrEmpty(doc.Text)
+        return (string.IsNullOrEmpty(doc?.Body?.Text())
             ? string.Empty
-            : doc.DocumentNode.SelectSingleNode(Selector).SelectSingleNode("div/a").GetAttributeValue("href", "")
-                .Trim('/');
+            : doc.Body.SelectSingleNode(Selector).ChildNodes.QuerySelector("div a")?.Attributes.GetNamedItem("href")?
+                .Value.Trim('/')) ?? string.Empty;
     }
 
-    private static string GetScraperId(HtmlDocument doc)
+    private static string GetScraperId(IDocument doc)
     {
-        return doc.DocumentNode.SelectSingleNode("//form[@name='form1']")?.GetAttributeValue("action", "")
-            .Trim('/') ?? string.Empty;
+        var node = doc.Body.SelectSingleNode("//form[@name='form1']");
+        if (node is not IHtmlFormElement element) return string.Empty;
+        return element.GetAttribute("action")?.Trim('/') ?? string.Empty;
     }
 
-    private async Task<string> GetHtml(string url, CancellationToken cancellationToken, string? productId = null,
+    private async Task<IDocument?> GetHtml(string url, CancellationToken cancellationToken, string? productId = null,
         string? transactionId = null)
     {
         _logger.LogDebug("{Name}: loading html from url: {Url}", Name, url);
-        var cookies = new CookieContainer();
-        var handler = new HttpClientHandler { CookieContainer = cookies };
-        var client = new HttpClient(handler);
-        var request = new HttpRequestMessage();
-        request.RequestUri = new Uri(url);
-        request.Method = HttpMethod.Get;
-        if (transactionId != null) request.Headers.Referrer = new Uri(string.Format(Referer, productId, transactionId));
+        var request = new DocumentRequest(new Url(url));
+        if (transactionId != null) request.Headers.Add("Referrer", string.Format(Referer, productId, transactionId));
+
+        var config = AngleSharp.Configuration.Default.WithDefaultCookies().WithMetaRefresh()
+            .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true }).WithXPath();
+        var context = BrowsingContext.New(config);
+        var document = await context.OpenAsync(request, cancellationToken);
+        if (document.Body?.Text() == null) return null;
 
         try
         {
-            var response = await client.SendAsync(request, cancellationToken);
-            _logger.LogDebug("{Name}: GetHtml finished, status code: {Code}", Name, response.StatusCode);
-            if (response.IsSuccessStatusCode)
+            _logger.LogDebug("{Name}: GetHtml finished, status code: {Code}", Name, document.StatusCode);
+            if (document.StatusCode != HttpStatusCode.OK) return null;
+            if (!document.Body.Text().Contains(AgeCheck)) return document;
+
+            if (transactionId != null)
             {
-                var text = await response.Content.ReadAsStringAsync(cancellationToken);
-                if (text.Contains(AgeCheck))
-                {
-                    if (transactionId != null)
-                    {
-                        _logger.LogError("{Name}: AgeCheck failed", Name);
-                        return string.Empty;
-                    }
-
-                    var query = response.RequestMessage?.RequestUri?.Query;
-                    if (query != null && query.Contains(TransactionId))
-                    {
-                        var id = query.Split(TransactionId)[0].Trim('?', '&').Split('=')[1].Trim('/');
-                        // post to agecheck
-                        var parameters = new List<KeyValuePair<string, string>>
-                        {
-                            new("mode", "confirm"),
-                            new("url", "/" + id)
-                        };
-                        response = await client.PostAsync(AgeCheckUrl, new FormUrlEncodedContent(parameters),
-                            cancellationToken);
-                        text = await response.Content.ReadAsStringAsync(cancellationToken);
-                        if (text.Contains(AgeCheck))
-                        {
-                            _logger.LogError("{Name}: AgeCheck failed", Name);
-                            return string.Empty;
-                        }
-
-                        return text;
-                    }
-                }
-
-                return text;
+                _logger.LogError("{Name}: AgeCheck failed", Name);
+                return null;
             }
 
-            return string.Empty;
+            if (!document.Url.Contains(TransactionId)) return document;
+            var id = document.Url.Split(TransactionId)[0].Trim('?', '&').Split('=')[1].Trim('/');
+            // post to agecheck
+            if (document.Body.SelectSingleNode("form['form1']") is not IHtmlFormElement form)
+            {
+                _logger.LogError("{Name}: AgeCheck failed, form not found", Name);
+                return null;
+            }
+            foreach (var formElement in form.Elements.OfType<IHtmlInputElement>())
+            {
+                formElement.Value = formElement.Name switch
+                {
+                    "mode" => "confirm",
+                    "url" => "/" + id,
+                    _ => formElement.Value
+                };
+            }
+
+            form.Action = AgeCheckUrl;
+
+            document = await form.SubmitAsync();
+
+            if (document.Body?.Text() == null)
+            {
+                _logger.LogError("{Name}: AgeCheck failed", Name);
+                return null;
+            }
+
+            if (!document.Body.Text().Contains(AgeCheck)) return document;
+            
+            _logger.LogError("{Name}: AgeCheck failed", Name);
+            return null;
         }
         catch (Exception e)
         {
             _logger.LogError("{Name}: could not load page {Url}\n{Message}", Name, url, e.Message);
-            return string.Empty;
+            return null;
         }
     }
 }
