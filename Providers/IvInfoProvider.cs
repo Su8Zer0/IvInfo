@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using F23.StringSimilarity;
 using Jellyfin.Plugin.IvInfo.Providers.Scrapers;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
@@ -22,7 +23,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers;
 /// </summary>
 public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemoteImageProvider
 {
-    private const string IdPattern = @".*?(\w{2,5}-\d{3,6}\w?).*";
+    private const string IdPattern = @".*?(\w{2,5}-\w{0,2}\d{3,6}\w?).*";
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<IvInfoProvider> _logger;
@@ -79,59 +80,6 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
 
     public string Name => IvInfoConstants.Name;
 
-    private static List<RemoteSearchResult> MergeResults(List<RemoteSearchResult> list)
-    {
-        if (list.Count <= 1) return list;
-        var current = 0;
-        var next = 1;
-        while (true)
-        {
-            if (current + 1 > list.Count || next + 1 > list.Count) break;
-            var first = list[current];
-            var second = list[next];
-            var globalIdFirst = first.GetProviderId(IvInfoConstants.Name)?.Split('|')[0] ?? string.Empty;
-            var globalIdSecond = second.GetProviderId(IvInfoConstants.Name)?.Split('|')[0] ?? string.Empty;
-            var l = new F23.StringSimilarity.NormalizedLevenshtein();
-            var sim = l.Similarity(first.Name, second.Name);
-            if (sim > 0.3 && globalIdFirst.Equals(globalIdSecond))
-            {
-                foreach (var (name, value) in second.ProviderIds)
-                {
-                    if (string.IsNullOrEmpty(first.GetProviderId(name)))
-                        first.SetProviderId(name, value);
-                }
-
-                if (string.IsNullOrEmpty(first.Overview) && !string.IsNullOrEmpty(second.Overview))
-                    first.Overview = second.Overview;
-                if (string.IsNullOrEmpty(first.ImageUrl) && !string.IsNullOrEmpty(second.ImageUrl))
-                    first.ImageUrl = second.ImageUrl;
-                list.Remove(second);
-                if (list.Count <= 1) break;
-            }
-            else
-            {
-                if (next + 1 == list.Count)
-                {
-                    if (current + 1 == list.Count)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        current++;
-                        next = current + 1;
-                    }
-                }
-                else
-                {
-                    next++;
-                }
-            }
-        }
-
-        return list;
-    }
-
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo,
         CancellationToken cancellationToken)
     {
@@ -142,9 +90,7 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
         if (string.IsNullOrEmpty(id)) return result;
         var scrapers = GetEnabledScrapers();
         foreach (var scraper in scrapers)
-        {
             result = (List<RemoteSearchResult>)await scraper.GetSearchResults(result, searchInfo, cancellationToken);
-        }
 
         _logger.LogDebug("Found {Num} results", result.Count);
 
@@ -167,10 +113,7 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
         };
         var id = info.GetProviderId(IvInfoConstants.Name) ?? (info.IsAutomated ? string.Empty : GetId(info));
         _logger.LogDebug("Global id: {Id}", id);
-        if (id.Contains('|'))
-        {
-            id = id.Split('|')[0];
-        }
+        if (id.Contains('|')) id = id.Split('|')[0];
 
         if (string.IsNullOrWhiteSpace(id))
         {
@@ -205,6 +148,55 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
         _logger.LogDebug("GetImageResponse");
         _logger.LogDebug("Params: url:{Url}", url);
         return _httpClientFactory.CreateClient(NamedClient.Default).GetAsync(new Uri(url), cancellationToken);
+    }
+
+    private static List<RemoteSearchResult> MergeResults(List<RemoteSearchResult> list)
+    {
+        if (list.Count <= 1) return list;
+        var current = 0;
+        var next = 1;
+        while (true)
+        {
+            if (current + 1 > list.Count || next + 1 > list.Count) break;
+            var first = list[current];
+            var second = list[next];
+            var globalIdFirst = first.GetProviderId(IvInfoConstants.Name)?.Split('|')[0] ?? string.Empty;
+            var globalIdSecond = second.GetProviderId(IvInfoConstants.Name)?.Split('|')[0] ?? string.Empty;
+            var l = new NormalizedLevenshtein();
+            var sim = l.Similarity(first.Name, second.Name);
+            if (sim > 0.3 && globalIdFirst.Equals(globalIdSecond))
+            {
+                foreach (var (name, value) in second.ProviderIds)
+                    if (string.IsNullOrEmpty(first.GetProviderId(name)))
+                        first.SetProviderId(name, value);
+
+                if (string.IsNullOrEmpty(first.Overview) && !string.IsNullOrEmpty(second.Overview))
+                    first.Overview = second.Overview;
+                if (string.IsNullOrEmpty(first.ImageUrl) && !string.IsNullOrEmpty(second.ImageUrl))
+                    first.ImageUrl = second.ImageUrl;
+                list.Remove(second);
+                if (list.Count <= 1) break;
+            }
+            else
+            {
+                if (next + 1 == list.Count)
+                {
+                    if (current + 1 == list.Count)
+                    {
+                        break;
+                    }
+
+                    current++;
+                    next = current + 1;
+                }
+                else
+                {
+                    next++;
+                }
+            }
+        }
+
+        return list;
     }
 
     public static string GetId(ItemLookupInfo info)
