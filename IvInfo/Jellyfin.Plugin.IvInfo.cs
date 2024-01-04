@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using Jellyfin.Plugin.IvInfo.Configuration;
+using IvInfo.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 
-namespace Jellyfin.Plugin.IvInfo;
+namespace IvInfo;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 public class IvInfo : BasePlugin<IvInfoPluginConfiguration>, IHasWebPages

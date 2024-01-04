@@ -16,12 +16,12 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers;
+namespace IvInfo.Providers.Scrapers;
 
 // ReSharper disable once UnusedType.Global
 public class GekiyasuScraper : IScraper
 {
-    internal const string Name = nameof(GekiyasuScraper);
+    public const string Name = nameof(GekiyasuScraper);
 
     private const string BaseUrl = "https://www.gekiyasu-dvdshop.jp/";
     private const string SearchUrl = BaseUrl + "products/list.php?mode=search&name={0}";
@@ -40,10 +40,10 @@ public class GekiyasuScraper : IScraper
         _logger = logger;
     }
 
-    public int Priority => IvInfo.Instance?.Configuration.GekiyasuScraperPriority ?? 3;
+    public int Priority => global::IvInfo.IvInfo.Instance?.Configuration.GekiyasuScraperPriority ?? 3;
 
-    public bool Enabled => IvInfo.Instance?.Configuration.GekiyasuScraperEnabled ?? false;
-    public bool ImgEnabled => IvInfo.Instance?.Configuration.GekiyasuImgEnabled ?? false;
+    public bool Enabled => global::IvInfo.IvInfo.Instance?.Configuration.GekiyasuScraperEnabled ?? false;
+    public bool ImgEnabled => global::IvInfo.IvInfo.Instance?.Configuration.GekiyasuImgEnabled ?? false;
 
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
         MovieInfo info, CancellationToken cancellationToken)

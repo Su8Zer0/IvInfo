@@ -1,4 +1,4 @@
-﻿namespace Jellyfin.Plugin.IvInfo.Tests;
+﻿namespace IvInfo.Tests;
 
 public class TestConsts
 {

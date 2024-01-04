@@ -1,6 +1,6 @@
 ﻿using MediaBrowser.Model.Plugins;
 
-namespace Jellyfin.Plugin.IvInfo.Configuration;
+namespace IvInfo.Configuration;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 public class IvInfoPluginConfiguration : BasePluginConfiguration
