@@ -1,17 +1,13 @@
 ﻿using System.Collections.Immutable;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Jellyfin.Plugin.IvInfo.Providers;
-using Jellyfin.Plugin.IvInfo.Providers.Scrapers;
+using IvInfo.Providers;
+using IvInfo.Providers.Scrapers;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
-using NUnit.Framework;
 
-namespace Jellyfin.Plugin.IvInfo.Tests;
+namespace IvInfo.Tests;
 
 [TestFixture]
 [TestOf("DmmScraper")]

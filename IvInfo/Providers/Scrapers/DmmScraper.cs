@@ -19,13 +19,13 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers;
+namespace IvInfo.Providers.Scrapers;
 
 // ReSharper disable once UnusedType.Global
 // ReSharper disable once ClassNeverInstantiated.Global
 public class DmmScraper : IScraper
 {
-    internal const string Name = nameof(DmmScraper);
+    public const string Name = nameof(DmmScraper);
 
     private const string DomainUrl = "https://www.dmm.co.jp/";
     private const string SearchUrl = DomainUrl + "search/=/searchstr={0}";
@@ -47,10 +47,10 @@ public class DmmScraper : IScraper
         _logger = logger;
     }
 
-    public bool Enabled => IvInfo.Instance?.Configuration.DmmScraperEnabled ?? false;
-    public bool ImgEnabled => IvInfo.Instance?.Configuration.DmmImgEnabled ?? false;
+    public bool Enabled => global::IvInfo.IvInfo.Instance?.Configuration.DmmScraperEnabled ?? false;
+    public bool ImgEnabled => global::IvInfo.IvInfo.Instance?.Configuration.DmmImgEnabled ?? false;
 
-    public int Priority => IvInfo.Instance?.Configuration.DmmScraperPriority ?? 1;
+    public int Priority => global::IvInfo.IvInfo.Instance?.Configuration.DmmScraperPriority ?? 1;
 
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
         MovieInfo info, CancellationToken cancellationToken)

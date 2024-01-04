@@ -1,21 +1,17 @@
 ﻿using System.Collections.Immutable;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Jellyfin.Plugin.IvInfo.Providers;
-using Jellyfin.Plugin.IvInfo.Providers.Scrapers;
+using IvInfo.Providers;
+using IvInfo.Providers.Scrapers;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
-using NUnit.Framework;
 
-namespace Jellyfin.Plugin.IvInfo.Tests;
+namespace IvInfo.Tests;
 
 [TestFixture]
-[TestOf("JavlibraryScraper")]
-public class JavlibraryScraperTest
+[TestOf("GekiyasuScraper")]
+public class GekiyasuScraperTest
 {
     private IScraper _scraper = null!;
 
@@ -23,7 +19,7 @@ public class JavlibraryScraperTest
     public void SetUp()
     {
         var logger = new LoggerFactory().CreateLogger<IvInfoProvider>();
-        _scraper = new JavlibraryScraper(logger);
+        _scraper = new GekiyasuScraper(logger);
     }
     
     [Test]
@@ -139,13 +135,13 @@ public class JavlibraryScraperTest
             IsAutomated = false
         };
         info.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        info.SetProviderId(JavlibraryScraper.Name, TestConsts.JavlibraryScraperId);
+        info.SetProviderId(GekiyasuScraper.Name, TestConsts.GekiyasuScraperId);
         var movie = new Movie
         {
             Name = TestConsts.Name
         };
         movie.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        movie.SetProviderId(JavlibraryScraper.Name, TestConsts.JavlibraryScraperId);
+        movie.SetProviderId(GekiyasuScraper.Name, TestConsts.GekiyasuScraperId);
         var metadata = new MetadataResult<Movie>
         {
             Item = movie
@@ -183,7 +179,7 @@ public class JavlibraryScraperTest
             IsAutomated = false
         };
         info.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        info.SetProviderId(JavlibraryScraper.Name, TestConsts.JavlibraryScraperId);
+        info.SetProviderId(GekiyasuScraper.Name, TestConsts.GekiyasuScraperId);
         var movie = new Movie
         {
             Name = TestConsts.Name,
@@ -191,7 +187,7 @@ public class JavlibraryScraperTest
             PreferredMetadataCountryCode = TestConsts.Lang.ToUpper()
         };
         movie.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        movie.SetProviderId(JavlibraryScraper.Name, TestConsts.JavlibraryScraperId);
+        movie.SetProviderId(GekiyasuScraper.Name, TestConsts.GekiyasuScraperId);
 
         var ret = await _scraper.GetImages(movie, CancellationToken.None);
         Assert.That(ret.Count(), Is.EqualTo(1));
@@ -205,7 +201,7 @@ public class JavlibraryScraperTest
             IsAutomated = false
         };
         info.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        info.SetProviderId(JavlibraryScraper.Name, TestConsts.JavlibraryScraperId);
+        info.SetProviderId(GekiyasuScraper.Name, TestConsts.GekiyasuScraperId);
         var movie = new Movie
         {
             Name = TestConsts.Name,
@@ -213,7 +209,7 @@ public class JavlibraryScraperTest
             PreferredMetadataCountryCode = TestConsts.Lang.ToUpper()
         };
         movie.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        movie.SetProviderId(JavlibraryScraper.Name, TestConsts.JavlibraryScraperId);
+        movie.SetProviderId(GekiyasuScraper.Name, TestConsts.GekiyasuScraperId);
 
         var ret = await _scraper.GetImages(movie, CancellationToken.None, ImageType.Box);
         Assert.That(ret.Count(), Is.EqualTo(1));
@@ -227,7 +223,7 @@ public class JavlibraryScraperTest
             IsAutomated = false
         };
         info.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        info.SetProviderId(JavlibraryScraper.Name, TestConsts.JavlibraryScraperId);
+        info.SetProviderId(GekiyasuScraper.Name, TestConsts.GekiyasuScraperId);
         var movie = new Movie
         {
             Name = TestConsts.Name,
@@ -235,7 +231,7 @@ public class JavlibraryScraperTest
             PreferredMetadataCountryCode = TestConsts.Lang.ToUpper()
         };
         movie.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        movie.SetProviderId(JavlibraryScraper.Name, TestConsts.JavlibraryScraperId);
+        movie.SetProviderId(GekiyasuScraper.Name, TestConsts.GekiyasuScraperId);
 
         var ret = await _scraper.GetImages(movie, CancellationToken.None, ImageType.Backdrop);
         Assert.That(ret, Is.Empty);
