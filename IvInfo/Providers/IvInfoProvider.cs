@@ -21,6 +21,7 @@ namespace IvInfo.Providers;
 /// <summary>
 ///     IV Info Provider.
 /// </summary>
+// ReSharper disable once ClassNeverInstantiated.Global
 public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemoteImageProvider
 {
     private const string IdPattern = @".*?(\w{2,5}-\w{0,2}\d{3,6}\w?).*";
@@ -89,8 +90,11 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
         var id = GetId(searchInfo);
         if (string.IsNullOrEmpty(id)) return result;
         var scrapers = GetEnabledScrapers();
+        // ReSharper disable once LoopCanBeConvertedToQuery
         foreach (var scraper in scrapers)
+        {
             result = (List<RemoteSearchResult>)await scraper.GetSearchResults(result, searchInfo, cancellationToken);
+        }
 
         _logger.LogDebug("Found {Num} results", result.Count);
 
@@ -111,7 +115,7 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
         {
             HasMetadata = false
         };
-        var id = info.GetProviderId(IvInfoConstants.Name) ?? (info.IsAutomated ? string.Empty : GetId(info));
+        var id = info.GetProviderId(IvInfoConstants.Name) ?? GetId(info);
         _logger.LogDebug("Global id: {Id}", id);
         if (id.Contains('|')) id = id.Split('|')[0];
 

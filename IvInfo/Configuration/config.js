@@ -13,6 +13,7 @@ export default function (page) {
         document.querySelector('#javlibrary_img').checked = config.JavlibraryImgEnabled;
         document.querySelector('#javlibrary_titles').checked = config.JavlibraryTitles;
         document.querySelector('#javlibrary_cast').checked = config.JavlibraryCast;
+        document.querySelector('#javlibrary_tags').checked = config.JavlibraryTags;
         document.querySelector('#dmm').checked = config.DmmScraperEnabled;
         document.querySelector('#dmm_img').checked = config.DmmImgEnabled;
         document.querySelector('#gekiyasu').checked = config.GekiyasuScraperEnabled;
@@ -82,6 +83,7 @@ export default function (page) {
         config.JavlibraryImgEnabled = document.querySelector('#javlibrary_img').checked;
         config.JavlibraryTitles = document.querySelector('#javlibrary_titles').checked;
         config.JavlibraryCast = document.querySelector('#javlibrary_cast').checked;
+        config.JavlibraryTags = document.querySelector('#javlibrary_tags').checked;
         config.DmmScraperEnabled = document.querySelector('#dmm').checked;
         config.DmmImgEnabled = document.querySelector('#dmm_img').checked;
         config.GekiyasuScraperEnabled = document.querySelector('#gekiyasu').checked;
