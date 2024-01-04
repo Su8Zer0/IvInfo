@@ -44,7 +44,12 @@ export default function (page) {
 
         setTimeout(() => {
             const el = document.getElementById('priority');
-            if (Sortable) {
+            if (typeof(Sortable) === "undefined") {
+                console.error("Sortable library not loaded, cannot change scrapers order");
+                const order_table = document.querySelector("#scrapers_order");
+                order_table.disabled = true;
+                Dashboard.alert("Sortable library not loaded, cannot change scrapers order");
+            } else {
                 Sortable.create(el, {
                     store: {
                         get: () => {
@@ -61,11 +66,6 @@ export default function (page) {
                         }
                     }
                 });
-            } else {
-                console.error("Sortable library not loaded, cannot change scrapers order");
-                const order_table = document.querySelector("#scrapers_order");
-                order_table.disabled = true;
-                Dashboard.alert("Sortable library not loaded, cannot change scrapers order");
             }
             Dashboard.hideLoadingMsg();
         }, 500);
