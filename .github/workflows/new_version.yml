@@ -23,6 +23,7 @@ jobs:
     env:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
+      REPO_URL: https://subzeropl.mywire.org
     steps:
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
@@ -41,7 +42,7 @@ jobs:
       run: pip install --user jprm
       shell: sh
     - name: Init repo
-      run: mkdir repo && cd repo && wget https://subzeropl.duckdns.org/jf-plugin-repo/manifest.json && cd ..
+      run: mkdir repo && cd repo && wget $REPO_URL/jf-plugin-repo/manifest.json && cd ..
       shell: sh
     - name: Build plugin
       run: jprm --verbosity debug plugin build --output ./repo --dotnet-framework net6.0 .
@@ -54,7 +55,7 @@ jobs:
       run: echo "version=$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
       shell: pwsh
     - name: Add to manifest
-      run: jprm --verbosity debug repo add --plugin-url https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/ivinfo_${{ steps.get_version.outputs.version }}.zip ./repo/ ./repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
+      run: jprm --verbosity debug repo add --plugin-url $REPO_URL/jf-plugin-repo/Jellyfin.Plugin.IvInfo/ivinfo_${{ steps.get_version.outputs.version }}.zip ./repo/ ./repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
       shell: sh
     - name: Create changelog text
       id: changelog
@@ -68,7 +69,7 @@ jobs:
       with:
         artifacts: repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
         name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
-        tag: v0.1.6.1
+        tag: v0.1.7.0
         prerelease: false
         draft: true
         generateReleaseNotes: true
@@ -89,6 +90,6 @@ jobs:
           ## Release
           Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
     - name: Post release to repo
-      run: curl -F plugin_name=Jellyfin.Plugin.IvInfo -F zip_file=@repo/ivinfo_${{ steps.get_version.outputs.version }}.zip -F manifest_file=@repo/manifest.json https://subzeropl.duckdns.org/jf-plugin-repo/release.php
+      run: curl -F plugin_name=Jellyfin.Plugin.IvInfo -F zip_file=@repo/ivinfo_${{ steps.get_version.outputs.version }}.zip -F manifest_file=@repo/manifest.json $REPO_URL/jf-plugin-repo/release.php
       shell: sh
     # TODO add modified manifest to repo
