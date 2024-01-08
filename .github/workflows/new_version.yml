@@ -16,6 +16,11 @@ on:
         description: 'Create draft release'
         required: false
         default: false
+      skip_tests:
+        type: boolean
+        description: 'Skip unit tests step'
+        required: false
+        default: false
 
 jobs:
   build:
@@ -50,6 +55,7 @@ jobs:
     - name: Run tests
       run: dotnet test
       shell: pwsh
+      if: ${{ inputs.skip_tests == false }}
     - name: Get version
       id: get_version
       run: echo "version=$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
