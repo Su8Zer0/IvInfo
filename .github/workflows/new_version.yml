@@ -29,6 +29,7 @@ jobs:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
       REPO_URL: https://subzeropl.mywire.org
+      PROJECT_NAME: IvInfo
     steps:
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
@@ -58,10 +59,10 @@ jobs:
       if: ${{ inputs.skip_tests == false }}
     - name: Get version
       id: get_version
-      run: echo "version=$((Select-Xml -Path .\Jellyfin.Plugin.IvInfo.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
+      run: echo "version=$((Select-Xml -Path .\$PROJECT_NAME.csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
       shell: pwsh
     - name: Add to manifest
-      run: jprm --verbosity debug repo add --plugin-url $REPO_URL/jf-plugin-repo/Jellyfin.Plugin.IvInfo/ivinfo_${{ steps.get_version.outputs.version }}.zip ./repo/ ./repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
+      run: jprm --verbosity debug repo add --plugin-url $REPO_URL/jf-plugin-repo/$PROJECT_NAME/ivinfo_${{ steps.get_version.outputs.version }}.zip ./repo/ ./repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
       shell: sh
     - name: Create changelog text
       id: changelog
@@ -96,6 +97,6 @@ jobs:
           ## Release
           Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
     - name: Post release to repo
-      run: curl -F plugin_name=Jellyfin.Plugin.IvInfo -F zip_file=@repo/ivinfo_${{ steps.get_version.outputs.version }}.zip -F manifest_file=@repo/manifest.json $REPO_URL/jf-plugin-repo/release.php
+      run: curl -F plugin_name=IvInfo -F zip_file=@repo/ivinfo_${{ steps.get_version.outputs.version }}.zip -F manifest_file=@repo/manifest.json $REPO_URL/jf-plugin-repo/release.php
       shell: sh
     # TODO add modified manifest to repo
