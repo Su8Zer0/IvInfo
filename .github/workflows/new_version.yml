@@ -54,7 +54,7 @@ jobs:
       run: jprm --verbosity debug plugin build --output ./repo --dotnet-framework net6.0 .
       shell: sh
     - name: Run tests
-      run: dotnet test
+      run: dotnet test -c Release
       shell: pwsh
       if: ${{ inputs.skip_tests == false }}
     - name: Get version
