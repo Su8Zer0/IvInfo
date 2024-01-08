@@ -59,7 +59,7 @@ jobs:
       if: ${{ inputs.skip_tests == false }}
     - name: Get version
       id: get_version
-      run: echo "version=$((Select-Xml -Path .\$( $env:PROJECT_NAME ).csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
+      run: echo "version=$((Select-Xml -Path .\$( $env:PROJECT_NAME )\$( $env:PROJECT_NAME ).csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
       shell: pwsh
     - name: Add to manifest
       run: jprm --verbosity debug repo add --plugin-url $REPO_URL/jf-plugin-repo/$PROJECT_NAME/ivinfo_${{ steps.get_version.outputs.version }}.zip ./repo/ ./repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
