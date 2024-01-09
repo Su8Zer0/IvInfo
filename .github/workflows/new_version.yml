@@ -107,9 +107,8 @@ jobs:
         run: curl -F plugin_name=IvInfo -F zip_file=@repo/ivinfo_${{ steps.get_version.outputs.version }}.zip -F manifest_file=@repo/manifest.json $REPO_URL/jf-plugin-repo/release.php
         shell: sh
         if: ${{ !inputs.no_publish }}
-        # TODO add modified manifest to repo
       - name: Push updated manifest to git
-        run: git status && git add manifest.json && git status
+        run: git config user.name "github-actions" && git config user.email "github-actions@github.com" && mv repo/manifest.json ./ &&git add manifest.json && git commit -m "Updated manifest.json" && git push
         shell: sh
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
