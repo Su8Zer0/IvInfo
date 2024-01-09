@@ -3,7 +3,7 @@ name: Build new version
 on:
   push:
     tags:
-    - v*
+      - v*
   workflow_dispatch:
     inputs:
       debug_enabled:
@@ -21,11 +21,16 @@ on:
         description: 'Create draft release'
         required: false
         default: false
+      no_publish:
+        type: boolean
+        description: 'Don''t publish (no release, no manifest update, no upload to repo'
+        required: false
+        default: false
       skip_tests:
         type: boolean
         description: 'Skip unit tests step'
         required: false
-        default: true
+        default: false
 
 jobs:
   build:
@@ -36,74 +41,78 @@ jobs:
       REPO_URL: https://subzeropl.mywire.org
       PROJECT_NAME: IvInfo
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 6.0.x
-    - name: Setup Python
-      uses: actions/setup-python@v4.7.0
-      with:
-        python-version: 3.9.*
-    - name: Install jprm
-      run: pip install --user jprm
-      shell: sh
-    - name: Init repo
-      run: mkdir repo && cd repo && wget $REPO_URL/jf-plugin-repo/manifest.json && cd ..
-      shell: sh
-    - name: Build plugin
-      run: jprm --verbosity debug plugin build --output ./repo --dotnet-framework net6.0 .
-      shell: sh
-    - name: Run tests
-      run: dotnet test -c Release
-      shell: pwsh
-      if: ${{ inputs.skip_tests == false }}
-    - name: Get version
-      id: get_version
-      run: echo "version=$((Select-Xml -Path .\$( $env:PROJECT_NAME )\$( $env:PROJECT_NAME ).csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
-      shell: pwsh
-    - name: Add to manifest
-      run: jprm --verbosity debug repo add --plugin-url $REPO_URL/jf-plugin-repo/$PROJECT_NAME/ivinfo_${{ steps.get_version.outputs.version }}.zip ./repo/ ./repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
-      shell: sh
-    - name: Create changelog text
-      id: changelog
-      uses: loopwerk/tag-changelog@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Create Draft Release
-      id: create_draft_release
-      uses: ncipollo/release-action@v1.13.0
-      if: ${{ github.event_name == 'workflow_dispatch' && inputs.draft_release }}
-      with:
-        artifacts: repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
-        name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
-        tag: v0.1.7.0
-        prerelease: false
-        draft: true
-        generateReleaseNotes: true
-        body: |
-          ## Release
-          Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
-    - name: Create Release
-      id: create_release
-      uses: ncipollo/release-action@v1.13.0
-      if: ${{ !inputs.draft_release }}
-      with:
-        artifacts: repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
-        name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
-        prerelease: false
-        draft: false
-        generateReleaseNotes: true
-        body: |
-          ## Release
-          Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
-    - name: Post release to repo
-      run: curl -F plugin_name=IvInfo -F zip_file=@repo/ivinfo_${{ steps.get_version.outputs.version }}.zip -F manifest_file=@repo/manifest.json $REPO_URL/jf-plugin-repo/release.php
-      shell: sh
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      with:
-        detached: ${{ inputs.debug_detached }}
-      if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-    # TODO add modified manifest to repo
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 6.0.x
+      - name: Setup Python
+        uses: actions/setup-python@v4.7.0
+        with:
+          python-version: 3.9.*
+      - name: Install jprm
+        run: pip install --user jprm
+        shell: sh
+      - name: Init repo
+        run: mkdir repo && cd repo && wget $REPO_URL/jf-plugin-repo/manifest.json && cd ..
+        shell: sh
+      - name: Build plugin
+        run: jprm --verbosity debug plugin build --output ./repo --dotnet-framework net6.0 .
+        shell: sh
+      - name: Run tests
+        run: dotnet test --nologo -c Release -v normal --filter "Category!=GithubSkip"
+        shell: pwsh
+        if: ${{ !inputs.skip_tests }}
+      - name: Get version
+        id: get_version
+        run: echo "version=$((Select-Xml -Path .\$( $env:PROJECT_NAME )\$( $env:PROJECT_NAME ).csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+      - name: Add to manifest
+        run: jprm --verbosity debug repo add --plugin-url $REPO_URL/jf-plugin-repo/$PROJECT_NAME/ivinfo_${{ steps.get_version.outputs.version }}.zip ./repo/ ./repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
+        shell: sh
+      - name: Create changelog text
+        id: changelog
+        uses: loopwerk/tag-changelog@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Draft Release
+        id: create_draft_release
+        uses: ncipollo/release-action@v1.13.0
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.draft_release && !inputs.no_publish }}
+        with:
+          artifacts: repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
+          name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
+          tag: v0.1.7.0
+          prerelease: false
+          draft: true
+          generateReleaseNotes: true
+          body: |
+            ## Release
+            Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
+      - name: Create Release
+        id: create_release
+        uses: ncipollo/release-action@v1.13.0
+        if: ${{ !inputs.draft_release && !inputs.no_publish }}
+        with:
+          artifacts: repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
+          name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
+          prerelease: false
+          draft: false
+          generateReleaseNotes: true
+          body: |
+            ## Release
+            Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
+      - name: Post release to repo
+        run: curl -F plugin_name=IvInfo -F zip_file=@repo/ivinfo_${{ steps.get_version.outputs.version }}.zip -F manifest_file=@repo/manifest.json $REPO_URL/jf-plugin-repo/release.php
+        shell: sh
+        if: ${{ !inputs.no_publish }}
+        # TODO add modified manifest to repo
+      - name: Push updated manifest to git
+        run: git status && git add manifest.json && git status
+        shell: sh
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          detached: ${{ inputs.debug_detached }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
