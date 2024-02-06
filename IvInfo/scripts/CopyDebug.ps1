@@ -4,7 +4,7 @@ $CUR_DIR = Get-Location
 #Set-Location ..
 dotnet publish --configuration Debug
 Start-Process "pskill" -Wait -NoNewWindow -ArgumentList "-nobanner jellyfin.exe"
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 2
 New-Item -Path "$( $JF_DIR )\data\plugins\IvInfo\" -ItemType Directory -ErrorAction SilentlyContinue
 Copy-Item ".\bin\Debug\net6.0\IvInfo.dll" -Destination "$( $JF_DIR )\data\plugins\IvInfo\"
 Copy-Item ".\bin\Debug\net6.0\IvInfo.pdb" -Destination "$( $JF_DIR )\data\plugins\IvInfo\"
