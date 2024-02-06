@@ -34,11 +34,11 @@ public class DmmScraper : IScraper
     private const string MetadataSelector = "//table[@class='mg-b20']/tbody/tr/td[@class='nw']";
     private const string PublishDate = "発売日";
     private const string PublishDateRental = "貸出開始日";
-    private const string Performer = "出演者";
     private const string Director = "監督";
     private const string Series = "シリーズ";
     private const string Maker = "メーカー";
     private const string Label = "レーベル";
+    private const string Expand = "すべて表示する";
 
     private readonly ILogger _logger;
 
@@ -49,6 +49,8 @@ public class DmmScraper : IScraper
 
     public bool Enabled => IvInfo.Instance?.Configuration.DmmScraperEnabled ?? false;
     public bool ImgEnabled => IvInfo.Instance?.Configuration.DmmImgEnabled ?? false;
+
+    private static bool GetTrailers => IvInfo.Instance?.Configuration.DmmGetTrailers ?? false;
 
     public int Priority => IvInfo.Instance?.Configuration.DmmScraperPriority ?? 1;
 
@@ -120,10 +122,8 @@ public class DmmScraper : IScraper
             datePresent = DateTime.TryParse(textDate, out releaseDate);
         }
 
-        var performer = doc
-            .Body.SelectNodes(MetadataSelector).FirstOrDefault(node => node.Text().Contains(Performer))?.Parent
-            ?.ChildNodes.QuerySelectorAll("td")
-            .Last().Text().Trim('-').Trim();
+        var performers = doc.Body.QuerySelector("span#performer").SelectNodes("a").ConvertAll(href => href.Text())
+            .Where(item => !item.Contains(Expand)).ToList();
         var director = doc.Body.SelectNodes(MetadataSelector)
             ?.Where(node => node.Text().Contains(Director)).FirstOrDefault()?.ParentElement?.SelectNodes("td")
             .Last()?.Text().Trim('-');
@@ -170,13 +170,16 @@ public class DmmScraper : IScraper
         if (!string.IsNullOrEmpty(series) && string.IsNullOrEmpty(metadata.Item.CollectionName))
             metadata.Item.CollectionName = series;
 
-        if (!string.IsNullOrEmpty(performer))
+        if (performers.Any())
         {
-            metadata.AddPerson(new PersonInfo
+            foreach (var performer in performers)
             {
-                Name = performer,
-                Type = PersonType.Actor
-            });
+                metadata.AddPerson(new PersonInfo
+                {
+                    Name = performer,
+                    Type = PersonType.Actor
+                });
+            }
         }
 
         if (!string.IsNullOrEmpty(director) && !metadata.People.Exists(p => p.Name == director))
@@ -185,7 +188,7 @@ public class DmmScraper : IScraper
                 Name = director,
                 Type = PersonType.Director
             });
-            
+
         if (!string.IsNullOrEmpty(trailerUrl))
             metadata.Item.AddTrailerUrl(trailerUrl);
 
@@ -312,7 +315,7 @@ public class DmmScraper : IScraper
 
             if (firstOnly && !info.IsAutomated) break;
         }
-        
+
         _logger.LogDebug("{Name}: Found {Num} results", Name, localResultList.Count);
 
         return localResultList;
