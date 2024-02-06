@@ -15,6 +15,7 @@ public class IvInfoPluginConfiguration : BasePluginConfiguration
     public bool JavlibraryTags { get; set; }
     public bool DmmScraperEnabled { get; set; }
     public bool DmmImgEnabled { get; set; }
+    public bool DmmGetTrailers { get; set; }
     public bool GekiyasuScraperEnabled { get; set; }
     public bool GekiyasuImgEnabled { get; set; }
     public int JavLibraryScraperPriority { get; set; }
