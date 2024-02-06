@@ -8,6 +8,14 @@
         "overview": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
         "versions": [
             {
+                "version": "0.1.7.1",
+                "changelog": "added config option to enable trailers scraping (DmmScraper)\nfix for multiple actors (DmmScraper)\n",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://subzeropl.mywire.org/jf-plugin-repo/IvInfo/ivinfo_0.1.7.1.zip",
+                "checksum": "f9d80fcb3c192be3283a51b09d849fd1",
+                "timestamp": "2024-02-06T12:59:57Z"
+            },
+            {
                 "version": "0.1.7.0",
                 "changelog": "plugin configuration changes\nscrapers remake\nadded unit tests\nsome code cleanups\n",
                 "targetAbi": "10.8.0.0",
