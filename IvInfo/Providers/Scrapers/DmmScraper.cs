@@ -353,6 +353,11 @@ public class DmmScraper : IScraper
 
     private async Task<string?> GetTrailerUrl(IDocument document, CancellationToken cancellationToken)
     {
+        if (!GetTrailers)
+        {
+            _logger.LogDebug("{Name}: Getting trailers disabled", Name);
+            return string.Empty;
+        }
         _logger.LogDebug("{Name}: GetTrailerUrl for", Name);
         var sampleMovieUrlNode = document.Body.SelectSingleNode("//div[@id='detail-sample-movie']/div/a");
         if (sampleMovieUrlNode is not IHtmlAnchorElement element) return null;

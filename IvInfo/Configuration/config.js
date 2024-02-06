@@ -16,6 +16,7 @@ export default function (page) {
         document.querySelector('#javlibrary_tags').checked = config.JavlibraryTags;
         document.querySelector('#dmm').checked = config.DmmScraperEnabled;
         document.querySelector('#dmm_img').checked = config.DmmImgEnabled;
+        document.querySelector('#dmm_trailers').checked = config.DmmGetTrailers;
         document.querySelector('#gekiyasu').checked = config.GekiyasuScraperEnabled;
         document.querySelector('#gekiyasu_img').checked = config.GekiyasuImgEnabled;
         document.querySelector('#prio_javlib').setAttribute('data-value', config.JavLibraryScraperPriority);
@@ -86,6 +87,7 @@ export default function (page) {
         config.JavlibraryTags = document.querySelector('#javlibrary_tags').checked;
         config.DmmScraperEnabled = document.querySelector('#dmm').checked;
         config.DmmImgEnabled = document.querySelector('#dmm_img').checked;
+        config.DmmGetTrailers = document.querySelector('#dmm_trailers').checked;
         config.GekiyasuScraperEnabled = document.querySelector('#gekiyasu').checked;
         config.GekiyasuImgEnabled = document.querySelector('#gekiyasu_img').checked;
         config.JavLibraryScraperPriority = document.querySelector('#prio_javlib').getAttribute('data-value');
