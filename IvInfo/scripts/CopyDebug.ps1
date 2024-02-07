@@ -1,4 +1,4 @@
-﻿clear
+﻿Clear-Host
 $JF_DIR = "e:\jellyfin"
 $CUR_DIR = Get-Location
 #Set-Location ..
