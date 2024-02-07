@@ -8,6 +8,14 @@
         "overview": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
         "versions": [
             {
+                "version": "0.1.7.2",
+                "changelog": "new release after repo switch (no code changes)\n",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://github.com/SubZeroPL/Jellyfin.Plugin.IvInfo/releases/download/v0.1.7.2/ivinfo_0.1.7.2.zip",
+                "checksum": "9896660d811d68e53045290c88c16d15",
+                "timestamp": "2024-02-07T11:36:51Z"
+            },
+            {
                 "version": "0.1.7.1",
                 "changelog": "added config option to enable trailers scraping (DmmScraper)\nfix for multiple actors (DmmScraper)\n",
                 "targetAbi": "10.8.0.0",
