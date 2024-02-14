@@ -8,14 +8,6 @@
         "overview": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
         "versions": [
             {
-                "version": "1.7.3",
-                "changelog": "fix cast error (Dmm, Javlibrary)\nadded cast scraping (Gekiyasu)\n",
-                "targetAbi": "10.8.0.0",
-                "sourceUrl": "https://github.com/Su8Zer0/IvInfo/releases/download/v0.1.7.3/ivinfo_0.1.7.3.zip",
-                "checksum": "92bd9762b01d02dbac79ab65f47494e7",
-                "timestamp": "2024-02-14T10:48:48Z"
-            },
-            {
                 "version": "1.7.2",
                 "changelog": "new release after repo switch (no code changes)\n",
                 "targetAbi": "10.8.0.0",
