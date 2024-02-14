@@ -6,12 +6,14 @@
         <AssemblyVersion>0.1.7.3</AssemblyVersion>
         <FileVersion>0.1.7.3</FileVersion>
         <Nullable>enable</Nullable>
-        <Authors>SubZeroPL</Authors>
-        <PackageProjectUrl>https://github.com/SubZeroPL/Jellyfin.Plugin.IvInfo</PackageProjectUrl>
+        <Authors>Su8Zer0</Authors>
+        <PackageProjectUrl>https://github.com/Su8Zer0/IvInfo</PackageProjectUrl>
         <LangVersion>10</LangVersion>
         <UserSecretsId>c3f0a03b-a799-4f5f-ad9b-c0eb9135e8cf</UserSecretsId>
         <OutputType>Library</OutputType>
         <Title>IvInfo</Title>
+        <RepositoryUrl>https://github.com/Su8Zer0/IvInfo</RepositoryUrl>
+        <Company>Su8Zer0</Company>
     </PropertyGroup>
 
     <ItemGroup>

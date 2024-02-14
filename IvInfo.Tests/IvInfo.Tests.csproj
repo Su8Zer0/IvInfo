@@ -7,13 +7,15 @@
     <FileVersion>0.1.7.3</FileVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Authors>SubZeroPL</Authors>
-    <PackageProjectUrl>https://github.com/SubZeroPL/Jellyfin.Plugin.IvInfo</PackageProjectUrl>
+    <Authors>Su8Zer0</Authors>
+    <PackageProjectUrl>https://github.com/Su8Zer0/IvInfo</PackageProjectUrl>
     <LangVersion>10</LangVersion>
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <Title>IvInfo.Tests</Title>
+    <RepositoryUrl>https://github.com/Su8Zer0/IvInfo</RepositoryUrl>
+    <Company>Su8Zer0</Company>
   </PropertyGroup>
 
   <ItemGroup>

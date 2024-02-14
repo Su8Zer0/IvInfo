@@ -3,7 +3,7 @@
         "category": "Metadata",
         "guid": "abe0c619-a145-4890-896b-cb1089ade4fe",
         "name": "IvInfo",
-        "description": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp. Fetches video metadata and cover/box/screenshot images. Also fetches trailers from DMM.\n",
+        "description": "Idol video info metadata provider.\nUses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp.\nFetches video metadata and cover/box/screenshot images.\nAlso fetches trailers from DMM.\n",
         "owner": "SubZeroPL",
         "overview": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
         "versions": [
