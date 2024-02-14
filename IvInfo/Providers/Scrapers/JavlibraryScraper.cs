@@ -274,6 +274,7 @@ public class JavlibraryScraper : IScraper
             castEn.Insert(0, director);
 
         var castJp = metadata.People;
+        if (castJp == null) return;
         for (var i = 0; i < castJp.Count; i++)
             if (metadata.People[i].Type == PersonType.Actor)
                 metadata.People[i].Role = castEn[i];

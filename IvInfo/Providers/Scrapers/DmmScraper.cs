@@ -122,7 +122,7 @@ public class DmmScraper : IScraper
             datePresent = DateTime.TryParse(textDate, out releaseDate);
         }
 
-        var performers = doc.Body.QuerySelector("span#performer").SelectNodes("a").ConvertAll(href => href.Text())
+        var performers = doc.Body.QuerySelector("span#performer")?.SelectNodes("a").ConvertAll(href => href.Text())
             .Where(item => !item.Contains(Expand)).ToList();
         var director = doc.Body.SelectNodes(MetadataSelector)
             ?.Where(node => node.Text().Contains(Director)).FirstOrDefault()?.ParentElement?.SelectNodes("td")
@@ -170,7 +170,7 @@ public class DmmScraper : IScraper
         if (!string.IsNullOrEmpty(series) && string.IsNullOrEmpty(metadata.Item.CollectionName))
             metadata.Item.CollectionName = series;
 
-        if (performers.Any())
+        if (performers != null && performers.Any())
         {
             foreach (var performer in performers)
             {
@@ -298,6 +298,8 @@ public class DmmScraper : IScraper
             if (!Regex.IsMatch(scraperId.ToLower(), regexp))
                 continue;
             var title = anchor.Text().Trim();
+            if (string.IsNullOrEmpty(title))
+                title = anchor.ChildNodes.QuerySelector("img")?.GetAttribute("alt")?.Trim();
             var imgUrl = anchor.ChildNodes.QuerySelector("img")?.GetAttribute("src");
             var nextIndex = localResultList.Count > 0 ? localResultList.Max(r => r.IndexNumber ?? 0) + 1 : 1;
             var result = new RemoteSearchResult
