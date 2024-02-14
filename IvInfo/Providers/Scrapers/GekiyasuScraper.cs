@@ -26,7 +26,9 @@ public class GekiyasuScraper : IScraper
     private const string BaseUrl = "https://www.gekiyasu-dvdshop.jp/";
     private const string SearchUrl = BaseUrl + "products/list.php?mode=search&name={0}";
     private const string NoResults = "該当件数0件です";
+    private const string InfoXpath = "//ul[@class='b-relative']/li/a";
     private const string MakerLbl = "メーカー";
+    private const string ActressLbl = "アイドル一覧";
     private const string Selector = "//div[@class='b-list-area']/ul[@class='b-list clearfix']/li";
     private const string AgeCheck = "年齢認証";
     private const string AgeCheckUrl = "https://www.gekiyasu-dvdshop.jp/r18_auth.php?";
@@ -111,8 +113,10 @@ public class GekiyasuScraper : IScraper
             out var releaseDate);
         var description = doc.Body.SelectSingleNode("//div[@id='detailarea']/div[@class='well']/span")
             ?.Text();
-        var maker = doc.Body.SelectNodes("//ul[@class='b-relative']/li/a")
+        var maker = doc.Body.SelectNodes(InfoXpath)
             ?.Where(node => node.Text() == MakerLbl).FirstOrDefault()?.Parent?.LastChild?.Text();
+        var cast = doc.Body.SelectNodes(InfoXpath).Where(node => node.Text() == ActressLbl).Select(node => node.Parent?.LastChild?.Text().Trim())
+            .ToList();
 
         if (!string.IsNullOrEmpty(title) && string.IsNullOrWhiteSpace(metadata.Item.Name))
             metadata.Item.Name = title;
@@ -127,6 +131,13 @@ public class GekiyasuScraper : IScraper
         if (string.IsNullOrWhiteSpace(metadata.Item.ExternalId)) metadata.Item.ExternalId = scraperId;
         if (!string.IsNullOrEmpty(maker) && !metadata.Item.Studios.Contains(maker))
             metadata.Item.AddStudio(maker);
+        
+        foreach (var person in cast.Where(person => !metadata.People?.Exists(p => p.Name == person) ?? true))
+            metadata.AddPerson(new PersonInfo
+            {
+                Name = person,
+                Type = PersonType.Actor
+            });
 
         metadata.Item.SetProviderId(Name, scraperId);
 
