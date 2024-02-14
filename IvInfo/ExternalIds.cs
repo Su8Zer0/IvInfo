@@ -30,7 +30,7 @@ public class JavlibraryScraperExternalId : IExternalId
     public string ProviderName => JavlibraryScraper.Name;
     public string Key => JavlibraryScraper.Name;
     public ExternalIdMediaType? Type => null;
-    public string? UrlFormatString => null;
+    public string? UrlFormatString => "https://www.javlibrary.com/en/?v={0}";
 }
 
 public class DmmScraperExternalId : IExternalId
@@ -43,7 +43,7 @@ public class DmmScraperExternalId : IExternalId
     public string ProviderName => DmmScraper.Name;
     public string Key => DmmScraper.Name;
     public ExternalIdMediaType? Type => null;
-    public string? UrlFormatString => null;
+    public string? UrlFormatString => "{0}";
 }
 
 public class GekiyasuScraperExternalId : IExternalId
@@ -56,5 +56,5 @@ public class GekiyasuScraperExternalId : IExternalId
     public string ProviderName => GekiyasuScraper.Name;
     public string Key => GekiyasuScraper.Name;
     public ExternalIdMediaType? Type => null;
-    public string? UrlFormatString => null;
+    public string? UrlFormatString => "https://www.gekiyasu-dvdshop.jp/{0}";
 }
