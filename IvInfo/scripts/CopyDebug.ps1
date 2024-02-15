@@ -6,8 +6,8 @@ dotnet publish --configuration Debug
 Start-Process "pskill" -Wait -NoNewWindow -ArgumentList "-nobanner jellyfin.exe"
 Start-Sleep -Seconds 3
 New-Item -Path "$( $JF_DIR )\data\plugins\IvInfo\" -ItemType Directory -ErrorAction SilentlyContinue
-Copy-Item ".\bin\Debug\net6.0\Jellyfin.Plugin.IvInfo.dll" -Destination "$( $JF_DIR )\data\plugins\IvInfo\"
-Copy-Item ".\bin\Debug\net6.0\Jellyfin.Plugin.IvInfo.pdb" -Destination "$( $JF_DIR )\data\plugins\IvInfo\"
+Copy-Item ".\bin\Debug\net6.0\IvInfo.dll" -Destination "$( $JF_DIR )\data\plugins\IvInfo\"
+Copy-Item ".\bin\Debug\net6.0\IvInfo.pdb" -Destination "$( $JF_DIR )\data\plugins\IvInfo\"
 Copy-Item ".\bin\Debug\net6.0\publish\F23.StringSimilarity.dll" -Destination "$( $JF_DIR )\data\plugins\IvInfo\"
 Copy-Item ".\bin\Debug\net6.0\publish\AngleSharp.dll" -Destination "$( $JF_DIR )\data\plugins\IvInfo\"
 Copy-Item ".\bin\Debug\net6.0\publish\AngleSharp.XPath.dll" -Destination "$( $JF_DIR )\data\plugins\IvInfo\"
