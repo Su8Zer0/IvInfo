@@ -12,10 +12,14 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers;
 public interface IScraper
 {
     /// <summary>
-    ///     Scraper priority, used in filling metadata. Scrapers with lower priority are called earlier.
+    ///     Should scraper fetch only first result if multiple matches were found.
     /// </summary>
-    /// <returns>scraper priority</returns>
-    public int Priority { get; }
+    protected static bool FirstOnly => IvInfo.Instance?.Configuration.FirstOnly ?? false;
+
+    /// <summary>
+    ///     Should scrapers called later in scraping order replace data already filled by earlier scrapers.
+    /// </summary>
+    protected static bool Overwriting => IvInfo.Instance?.Configuration.Overwriting ?? false;
 
     /// <summary>
     ///     Is scraper enabled in configuration. Enabled scrapers are used in searching and metadata fetching.
@@ -26,6 +30,12 @@ public interface IScraper
     ///     Is image fetching from scraper enabled in configuration.
     /// </summary>
     public bool ImgEnabled { get; }
+
+    /// <summary>
+    ///     Scraper priority, used in filling metadata. Scrapers with lower priority are called earlier.
+    /// </summary>
+    /// <returns>scraper priority</returns>
+    public int Priority { get; }
 
     /// <summary>
     ///     Returns search results for this item info.
@@ -41,9 +51,11 @@ public interface IScraper
     ///     Fills metadata for <see cref="MetadataResult{T}" />.
     /// </summary>
     /// <param name="metadata">metadata object to fill</param>
+    /// <param name="info">source item info</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>true if any data was filled, false otherwise</returns>
-    public Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken);
+    public Task<bool> FillMetadata(MetadataResult<Movie> metadata, ItemLookupInfo info,
+        CancellationToken cancellationToken);
 
     /// <summary>
     ///     Gets url list for image for passed item and requested type.
@@ -60,28 +72,4 @@ public interface IScraper
     /// </summary>
     /// <returns>array of <see cref="ImageType" />s</returns>
     public IEnumerable<ImageType> HandledImageTypes();
-
-    /// <summary>
-    ///     Adds new image to list.<br />
-    ///     If image of this type already exists in the list then existing image is removed, and then the new one added.
-    /// </summary>
-    /// <param name="images">list with images</param>
-    /// <param name="imageType">
-    ///     <see cref="ImageType" />
-    /// </param>
-    /// <param name="url">new image url</param>
-    /// <returns>list of images, modified if necessary</returns>
-    public static List<RemoteImageInfo> AddOrOverwrite(List<RemoteImageInfo> images, ImageType imageType,
-        string url)
-    {
-        var result = new List<RemoteImageInfo>(images);
-        var image = images.Find(i => i.Type == imageType);
-        if (image != null)
-        {
-            result.Remove(image);
-        }
-
-        result.Add(new RemoteImageInfo { Url = url, Type = imageType, ProviderName = IvInfoConstants.Name });
-        return result;
-    }
 }
