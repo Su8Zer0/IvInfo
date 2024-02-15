@@ -42,20 +42,24 @@ jobs:
       PROJECT_NAME: IvInfo
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 6.0.x
       - name: Setup Python
-        uses: actions/setup-python@v4.7.0
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9.*
       - name: Install jprm
         run: pip install --user jprm
         shell: sh
       - name: Init repo
-        run: mkdir repo && cd repo && wget $REPO_URL/jf-plugin-repo/manifest.json && cd ..
+        run: |
+          mkdir repo
+          cp manifest.json repo/
         shell: sh
       - name: Build plugin
         run: jprm --verbosity debug plugin build --output ./repo --dotnet-framework net6.0 .
@@ -66,10 +70,10 @@ jobs:
         if: ${{ !inputs.skip_tests }}
       - name: Get version
         id: get_version
-        run: echo "version=$((Select-Xml -Path .\$( $env:PROJECT_NAME )\$( $env:PROJECT_NAME ).csproj -XPath "/Project/PropertyGroup/AssemblyVersion").Node.InnerXML)" >> $env:GITHUB_OUTPUT
+        run: echo "version=$((Select-Xml -Path .\$( $env:PROJECT_NAME )\$( $env:PROJECT_NAME ).csproj -XPath '/Project/PropertyGroup/AssemblyVersion').Node.InnerXML)" >> $env:GITHUB_OUTPUT
         shell: pwsh
       - name: Add to manifest
-        run: jprm --verbosity debug repo add --plugin-url $REPO_URL/jf-plugin-repo/$PROJECT_NAME/ivinfo_${{ steps.get_version.outputs.version }}.zip ./repo/ ./repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
+        run: jprm --verbosity debug repo add --plugin-url https://github.com/SubZeroPL/Jellyfin.Plugin.IvInfo/releases/download/v${{ steps.get_version.outputs.version }}/ivinfo_${{ steps.get_version.outputs.version }}.zip ./repo ./repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
         shell: sh
       - name: Create changelog text
         id: changelog
@@ -78,21 +82,24 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Draft Release
         id: create_draft_release
-        uses: ncipollo/release-action@v1.13.0
+        uses: ncipollo/release-action@v1
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.draft_release && !inputs.no_publish }}
         with:
           artifacts: repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
           name: Jellyfin.Plugin.IvInfo Release v${{ steps.get_version.outputs.version }}
-          tag: v0.1.7.0
-          prerelease: false
+          tag: prerelease
+          commit: master
+          prerelease: true
           draft: true
           generateReleaseNotes: true
           body: |
             ## Release
             Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
+            ---
+            ${{ steps.changelog.outputs.changes }}
       - name: Create Release
         id: create_release
-        uses: ncipollo/release-action@v1.13.0
+        uses: ncipollo/release-action@v1
         if: ${{ !inputs.draft_release && !inputs.no_publish }}
         with:
           artifacts: repo/ivinfo_${{ steps.get_version.outputs.version }}.zip
@@ -103,12 +110,21 @@ jobs:
           body: |
             ## Release
             Jellyfin.Plugin.IvInfo v${{ steps.get_version.outputs.version }}
+            ---
+            ${{ steps.changelog.outputs.changes }}
       - name: Post release to repo
         run: curl -F plugin_name=IvInfo -F zip_file=@repo/ivinfo_${{ steps.get_version.outputs.version }}.zip -F manifest_file=@repo/manifest.json $REPO_URL/jf-plugin-repo/release.php
         shell: sh
-        if: ${{ !inputs.no_publish }}
+        if: ${{ !inputs.no_publish && false }}
       - name: Push updated manifest to git
-        run: git config user.name "github-actions" && git config user.email "github-actions@github.com" && mv repo/manifest.json ./ &&git add manifest.json && git commit -m "Updated manifest.json" && git push
+        run: |
+          git checkout master
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          mv ./repo/manifest.json ./
+          git add manifest.json
+          git commit -m "Updated manifest.json\n\nversion ${{ steps.get_version.outputs.version }}"
+          git push
         shell: sh
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
