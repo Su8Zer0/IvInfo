@@ -2,12 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using HtmlAgilityPack;
+using AngleSharp;
+using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
+using AngleSharp.Io;
+using AngleSharp.XPath;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
@@ -25,11 +29,9 @@ public class DmmScraper : IScraper
 
     private const string DomainUrl = "https://www.dmm.co.jp/";
     private const string SearchUrl = DomainUrl + "search/=/searchstr={0}";
-    private const string ProxyDomain = "https://jppx.azurewebsites.net/";
-    private const string ProxyUrl = ProxyDomain + "browse.php?u={0}&b=8";
     private const string NoPage = "404 Not Found";
     private const string NoResults = "に一致する商品は見つかりませんでした";
-    private const string MetadataSelector = "//table[@class='mg-b20']/tr/td[@class='nw']";
+    private const string MetadataSelector = "//table[@class='mg-b20']/tbody/tr/td[@class='nw']";
     private const string PublishDate = "発売日";
     private const string PublishDateRental = "貸出開始日";
     private const string Performer = "出演者";
@@ -44,12 +46,6 @@ public class DmmScraper : IScraper
     {
         _logger = logger;
     }
-
-    /// <summary>
-    ///     Should we use proxy for loading DMM pages? Most of DMM product pages is not available and not possible to find
-    ///     outside of Japan.
-    /// </summary>
-    private static bool UseProxy => IvInfo.Instance?.Configuration.DmmUseProxy ?? false;
 
     public bool Enabled => IvInfo.Instance?.Configuration.DmmScraperEnabled ?? false;
     public bool ImgEnabled => IvInfo.Instance?.Configuration.DmmImgEnabled ?? false;
@@ -107,52 +103,59 @@ public class DmmScraper : IScraper
             if (string.IsNullOrEmpty(scraperId)) return false;
         }
 
-        var html = await GetHtml(scraperId, cancellationToken);
-        if (string.IsNullOrEmpty(html)) return false;
-        var doc = new HtmlDocument();
-        doc.LoadHtml(html);
+        var doc = await GetHtml(scraperId, cancellationToken);
+        if (doc?.Body == null) return false;
 
-        if (string.IsNullOrEmpty(doc.Text))
+        if (string.IsNullOrEmpty(doc.Body.Text()))
         {
             _logger.LogDebug("{Name}: searching returned empty page, error?", Name);
             return false;
         }
 
-        var title = doc.DocumentNode
-            .SelectSingleNode("//div[@class='area-headline group']/div[@class='hreview']/h1")
-            ?.InnerText;
-        var textDate = doc.DocumentNode.SelectNodes(MetadataSelector)
-            ?.Where(n => n.InnerText.Contains(PublishDate)).FirstOrDefault()?.ParentNode.SelectNodes("td")
-            .Last().InnerText.Trim();
+        var title = doc.Body.SelectSingleNode("//div[@class='area-headline group']/div[@class='hreview']/h1")
+            ?.Text();
+        var textDate = doc.Body.SelectNodes(MetadataSelector)
+            ?.Where(n => n.Text().Contains(PublishDate)).FirstOrDefault()?.ParentElement?.SelectNodes("td")
+            .Last().Text().Trim();
         var datePresent = DateTime.TryParse(textDate, out var releaseDate);
         if (!datePresent)
         {
-            textDate = doc.DocumentNode.SelectNodes(MetadataSelector)
-                ?.Where(n => n.InnerText.Contains(PublishDateRental)).FirstOrDefault()?.ParentNode.SelectNodes("td")
-                .Last().InnerText.Trim();
+            textDate = doc.Body.SelectNodes(MetadataSelector)
+                ?.Where(n => n.Text().Contains(PublishDateRental)).FirstOrDefault()?.ParentElement.SelectNodes("td")
+                .Last().Text().Trim();
             datePresent = DateTime.TryParse(textDate, out releaseDate);
         }
 
-        var director = doc.DocumentNode.SelectNodes(MetadataSelector)
-            ?.Where(node => node.InnerText.Contains(Director)).FirstOrDefault()?.ParentNode?.SelectNodes("td")
-            .Last()?.InnerText?.Trim('-');
-        var maker = doc.DocumentNode.SelectNodes(MetadataSelector)
-            ?.Where(node => node.InnerText.Contains(Maker)).FirstOrDefault()?.ParentNode?.SelectNodes("td").Last()
-            ?.InnerText?.Trim('-');
-        var label = doc.DocumentNode.SelectNodes(MetadataSelector)
-            ?.Where(node => node.InnerText.Contains(Label)).FirstOrDefault()?.ParentNode?.SelectNodes("td").Last()
-            ?.InnerText?.Trim('-');
-        var series = doc.DocumentNode.SelectNodes(MetadataSelector)
-            ?.Where(node => node.InnerText.Contains(Series)).FirstOrDefault()?.ParentNode?.SelectNodes("td").Last()
-            ?.InnerText?.Trim('-');
+        var performer = doc
+            .Body.SelectNodes(MetadataSelector).FirstOrDefault(node => node.Text().Contains(Performer))?.Parent
+            ?.ChildNodes.QuerySelectorAll("td")
+            .Last().Text().Trim('-').Trim();
+        var director = doc.Body.SelectNodes(MetadataSelector)
+            ?.Where(node => node.Text().Contains(Director)).FirstOrDefault()?.ParentElement?.SelectNodes("td")
+            .Last()?.Text().Trim('-');
+        var maker = doc.Body.SelectNodes(MetadataSelector)
+            ?.Where(node => node.Text().Contains(Maker)).FirstOrDefault()?.ParentElement?.SelectNodes("td").Last()
+            ?.Text().Trim('-');
+        var label = doc.Body.SelectNodes(MetadataSelector)
+            ?.Where(node => node.Text().Contains(Label)).FirstOrDefault()?.ParentElement?.SelectNodes("td").Last()
+            ?.Text().Trim('-');
+        var series = doc.Body.SelectNodes(MetadataSelector)
+            ?.Where(node => node.Text().Contains(Series)).FirstOrDefault()?.ParentElement?.SelectNodes("td").Last()
+            ?.Text().Trim('-');
 
-        var description = doc.DocumentNode
+        var description = doc.Body
             .SelectSingleNode("//div[@class='clear mg-b20 lh4']/p[@class='mg-t0 mg-b20']")
-            ?.InnerText.Trim();
+            ?.Text().Trim();
         if (string.IsNullOrEmpty(description))
-            description = doc.DocumentNode
+            description = doc.Body
                 .SelectSingleNode("//div[@class='mg-b20 lh4']/p[@class='mg-b20']")
-                ?.InnerText.Trim();
+                ?.Text().Trim();
+        if (string.IsNullOrEmpty(description))
+            description = doc.Body
+                .SelectSingleNode("//div[@class='mg-b20 lh4']")
+                ?.Text().Trim();
+
+        var trailerUrl = await GetTrailerUrl(doc, cancellationToken);
 
         if (!string.IsNullOrEmpty(title) && string.IsNullOrWhiteSpace(metadata.Item.Name))
             metadata.Item.Name = title;
@@ -173,12 +176,24 @@ public class DmmScraper : IScraper
         if (!string.IsNullOrEmpty(series) && string.IsNullOrEmpty(metadata.Item.CollectionName))
             metadata.Item.CollectionName = series;
 
-        if (!string.IsNullOrWhiteSpace(director) && !metadata.People.Exists(p => p.Name == director))
+        if (!string.IsNullOrEmpty(performer))
+        {
+            metadata.AddPerson(new PersonInfo
+            {
+                Name = performer,
+                Type = PersonType.Actor
+            });
+        }
+
+        if (!string.IsNullOrEmpty(director) && !metadata.People.Exists(p => p.Name == director))
             metadata.AddPerson(new PersonInfo
             {
                 Name = director,
                 Type = PersonType.Director
             });
+            
+        if (!string.IsNullOrEmpty(trailerUrl))
+            metadata.Item.AddTrailerUrl(trailerUrl);
 
         metadata.Item.SetProviderId(Name, scraperId);
 
@@ -209,36 +224,37 @@ public class DmmScraper : IScraper
 
         _logger.LogDebug("{Name}: scraper id: {Id}", Name, scraperId);
 
-        var doc = new HtmlDocument();
-        var html = await GetHtml(scraperId, cancellationToken);
-        if (string.IsNullOrEmpty(html)) return result;
-        doc.LoadHtml(html);
+        var doc = await GetHtml(scraperId, cancellationToken);
+        if (doc?.Body == null) return result;
 
-        if (doc.DocumentNode.InnerText.Contains(NoPage)) return result;
+        if (doc.Body.Text().Contains(NoPage)) return result;
 
         switch (imageType)
         {
             case ImageType.Primary:
-                var frontUrl = doc.DocumentNode.SelectSingleNode("//a[@name='package-image']/img")
-                    ?.GetAttributeValue("src", "") ?? doc.DocumentNode.SelectSingleNode("//img[@class='tdmm']")
-                    ?.GetAttributeValue("src", "");
+                var imgNode = doc.Body.SelectSingleNode("//img[@class='tdmm']");
+                if (imgNode is not IHtmlImageElement image) break;
+                var frontUrl = image.Source;
                 if (frontUrl == null) break;
                 result.Add(new RemoteImageInfo
-                    { Url = GetProxyUrl(frontUrl), Type = imageType, ProviderName = Name });
+                    { Url = frontUrl, Type = imageType, ProviderName = Name });
                 break;
             case ImageType.Box:
-                var boxUrl = doc.DocumentNode.SelectSingleNode("//a[@name='package-image']")
-                    ?.GetAttributeValue("href", "");
-                if (boxUrl == null) break;
+                var boxNode = doc.Body.SelectSingleNode("//a[@name='package-image']");
+                if (boxNode is not IHtmlAnchorElement anchor) break;
+                var boxUrl = anchor.Href;
                 result.Add(new RemoteImageInfo
-                    { Url = GetProxyUrl(boxUrl), Type = imageType, ProviderName = Name });
+                    { Url = boxUrl, Type = imageType, ProviderName = Name });
                 break;
             case ImageType.Screenshot:
-                var screenshotNodes = doc.DocumentNode.SelectNodes("//div[@id='sample-image-block']/a/img");
+                var screenshotNodes = doc.Body.SelectNodes("//div[@id='sample-image-block']/a/img");
                 if (screenshotNodes == null) break;
-                result.AddRange(screenshotNodes.Select(node => node.GetAttributeValue("src", "")).Select(scrUrl =>
-                    new RemoteImageInfo
-                        { Url = GetProxyUrl(scrUrl), Type = imageType, ProviderName = Name }));
+                var screenshots = screenshotNodes.Select(node => node as IHtmlImageElement).Where(img => img != null)
+                    .Select(img =>
+                        new RemoteImageInfo
+                            { Url = img!.Source, Type = imageType, ProviderName = Name });
+
+                result.AddRange(screenshots);
                 break;
             case ImageType.Art:
             case ImageType.Backdrop:
@@ -271,38 +287,32 @@ public class DmmScraper : IScraper
     {
         var localResultList = new List<RemoteSearchResult>(resultList);
         var doc = await GetSearchResultsPage(globalId, cancellationToken);
-        if (doc == null) return localResultList;
-        if (string.IsNullOrEmpty(doc.Text)) return localResultList;
+        if (doc?.Body == null) return localResultList;
+        if (string.IsNullOrEmpty(doc.Body.Text())) return localResultList;
 
         var nodeCollection =
-            doc.DocumentNode.SelectNodes("//div[@class='d-item']/ul[@id='list']/li/div/p[@class='tmb']/a");
+            doc.Body.SelectNodes("//div[@class='d-item']/ul[@id='list']/li/div/p[@class='tmb']/a");
         foreach (var node in nodeCollection)
         {
-            // browse.php?u=https%3A%2F%2Fwww.dmm.co.jp%2Fmono%2Fdvd%2F-%2Fdetail%2F%3D%2Fcid%3Dn_650ecr0089%2F&b=8
-            // browse.php?u=https://www.dmm.co.jp/mono/dvd/-/detail/=/cid=n_650ecr0089/&b=8
-            var url = HttpUtility.UrlDecode(node.GetAttributeValue("href", ""));
-            var scraperId = url.Replace("/browse.php?u=", "").Replace("&amp;b=8", "");
-            var tempGlobalId = globalId.ToLower().Replace("-", "");
+            if (node is not IHtmlAnchorElement anchor) continue;
+            var scraperId = HttpUtility.UrlDecode(anchor.Href ?? "");
+            var tempGlobalId = ProcessId(globalId).ToLower().Replace("-", "");
             var regexp = $@"\/cid=(\w_\d+)?{tempGlobalId}\/";
             if (!Regex.IsMatch(scraperId.ToLower(), regexp))
                 continue;
-            var title = node.InnerText.Trim();
-            var imgUrl = ProxyDomain + node.ChildNodes.FindFirst("img").GetAttributeValue("src", "");
+            var title = anchor.Text().Trim();
+            var imgUrl = anchor.ChildNodes.QuerySelector("img")?.GetAttribute("src");
             var nextIndex = localResultList.Count > 0 ? localResultList.Max(r => r.IndexNumber ?? 0) + 1 : 1;
-            // var result = localResultList.Find(r => r.ProviderIds[IvInfoConstants.Name].Equals(globalId));
-            // if (result == null)
-            // {
             var result = new RemoteSearchResult
             {
                 Name = title,
                 ImageUrl = imgUrl,
                 SearchProviderName = Name,
-                IndexNumber = nextIndex,
-                AlbumArtist = new RemoteSearchResult { Name = $"{Name}: {scraperId}/{globalId}" }
+                Overview = $"{globalId}<br />{scraperId}",
+                IndexNumber = nextIndex
             };
             result.SetProviderId(IvInfoConstants.Name, globalId);
             localResultList.Add(result);
-            // }
 
             result.SetProviderId(Name, scraperId);
 
@@ -319,58 +329,82 @@ public class DmmScraper : IScraper
     /// <param name="globalId">global id</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>HtmlDocument</returns>
-    private async Task<HtmlDocument?> GetSearchResultsPage(string globalId, CancellationToken cancellationToken)
+    private async Task<IDocument?> GetSearchResultsPage(string globalId, CancellationToken cancellationToken)
     {
         _logger.LogDebug("{Name}: searching for globalid: {Id}", Name, globalId);
         if (string.IsNullOrEmpty(globalId)) return null;
-        var url = string.Format(SearchUrl, globalId);
-        var html = await GetHtml(url, cancellationToken);
-        if (string.IsNullOrEmpty(html)) return null;
-        var doc = new HtmlDocument();
-        doc.LoadHtml(html);
-        return doc.DocumentNode.InnerText.Contains(NoResults) ? null : doc;
+        var url = string.Format(SearchUrl, ProcessId(globalId));
+        var doc = await GetHtml(url, cancellationToken);
+        if (doc?.Body == null) return null;
+        return doc.Body.Text().Contains(NoResults) ? null : doc;
     }
 
-    private async Task<string> GetHtml(string url, CancellationToken cancellationToken)
+    private static string ProcessId(string globalId)
+    {
+        var parts = globalId.Split("-");
+        try
+        {
+            var str = parts[0];
+            var id = int.Parse(parts[1]);
+            var newId = id.ToString("00000");
+            return $"{str}-{newId}";
+        }
+        catch (FormatException)
+        {
+            return globalId;
+        }
+    }
+
+    private async Task<string?> GetTrailerUrl(IDocument document, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("{Name}: GetTrailerUrl for", Name);
+        var sampleMovieUrlNode = document.Body.SelectSingleNode("//div[@id='detail-sample-movie']/div/a");
+        if (sampleMovieUrlNode is not IHtmlAnchorElement element) return null;
+        var sampleMovieScript = element.Attributes.GetNamedItem("onclick")?.Value;
+        if (string.IsNullOrEmpty(sampleMovieScript)) return null;
+        var start = sampleMovieScript.IndexOf("sampleplay('/", StringComparison.Ordinal) + "sampleplay('/".Length;
+        var end = sampleMovieScript.IndexOf("'); return false;", start, StringComparison.Ordinal);
+        var sampleUrl = string.Concat(DomainUrl, sampleMovieScript.AsSpan(start, end - start));
+        var playerDoc = await GetHtml(sampleUrl, cancellationToken);
+        if (playerDoc == null) return null;
+        var iframe = playerDoc.QuerySelector("iframe");
+        var iframeSrc = iframe?.Attributes.GetNamedItem("src")?.Value;
+        if (string.IsNullOrEmpty(iframeSrc)) return null;
+        playerDoc = await GetHtml(iframeSrc, cancellationToken);
+        var scripts = playerDoc?.QuerySelectorAll("script");
+        var oneScript = scripts?.First(s => s.InnerHtml.Contains("litevideo"));
+        if (oneScript == null) return null;
+        start = oneScript.InnerHtml.IndexOf("const args = {", StringComparison.Ordinal) + "const args = ".Length;
+        end = oneScript.InnerHtml.IndexOf(";", start, StringComparison.Ordinal);
+        var json = oneScript.InnerHtml.Substring(start, end - start);
+        var jsonDoc = JsonDocument.Parse(json);
+        var src = jsonDoc.RootElement.GetProperty("src").GetString();
+        return src != null && src.StartsWith("http") ? src : $"https:{src}";
+    }
+
+    private async Task<IDocument?> GetHtml(string url, CancellationToken cancellationToken)
     {
         _logger.LogDebug("GetHtml: {Url}", url);
-        var cookies = new CookieContainer();
-        cookies.Add(new Uri(DomainUrl), new Cookie("age_check_done", "1"));
-        cookies.Add(new Uri(DomainUrl), new Cookie("cklg", "ja"));
-        if (UseProxy) cookies.Add(new Uri(ProxyDomain), new Cookie("c[dmm.co.jp][/][age_check_done]", "1"));
+        var cookieProvider = new MemoryCookieProvider();
+        cookieProvider.SetCookie(new Url(DomainUrl), "age_check_done=1");
+        cookieProvider.SetCookie(new Url(DomainUrl), "cklg=ja");
 
-        var handler = new HttpClientHandler { CookieContainer = cookies };
-        var request = new HttpRequestMessage();
-        request.RequestUri = new Uri(GetProxyUrl(url));
-        request.Method = HttpMethod.Get;
-        var client = new HttpClient(handler);
+        var config = AngleSharp.Configuration.Default.With(cookieProvider)
+            .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true }).WithXPath();
+        var context = BrowsingContext.New(config);
+        var document = await context.OpenAsync(url, cancellationToken);
 
         try
         {
-            var response = await client.SendAsync(request, cancellationToken);
-            _logger.LogDebug("{Name}: GetHtml finished, status code: {Code}", Name, response.StatusCode);
-            return response.IsSuccessStatusCode
-                ? await response.Content.ReadAsStringAsync(cancellationToken)
-                : string.Empty;
+            _logger.LogDebug("{Name}: GetHtml finished, status code: {Code}", Name, document.StatusCode);
+            return document.StatusCode == HttpStatusCode.OK
+                ? document
+                : null;
         }
         catch (Exception e)
         {
             _logger.LogError("Could not load page {Url}\n{Message}", url, e.Message);
-            return string.Empty;
+            return null;
         }
-    }
-
-    /// <summary>
-    ///     Returns proxified url if needed, else returns url.
-    /// </summary>
-    /// <param name="url">Url to proxify</param>
-    /// <returns>Processed url</returns>
-    private string GetProxyUrl(string url)
-    {
-        var proxyUrl = url.Contains("browse.php?u=")
-            ? ProxyDomain + url
-            : string.Format(ProxyUrl, HttpUtility.UrlEncode(url));
-        _logger.LogDebug("GetHtml: {Url} (proxified: {Proxified})", UseProxy ? proxyUrl : url, UseProxy);
-        return UseProxy ? proxyUrl : url;
     }
 }

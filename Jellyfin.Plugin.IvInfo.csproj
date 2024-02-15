@@ -10,14 +10,26 @@
         <PackageProjectUrl>https://github.com/SubZeroPL/Jellyfin.Plugin.IvInfo</PackageProjectUrl>
         <LangVersion>10</LangVersion>
         <UserSecretsId>c3f0a03b-a799-4f5f-ad9b-c0eb9135e8cf</UserSecretsId>
+        <OutputType>Library</OutputType>
+        <GenerateProgramFile>false</GenerateProgramFile>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="HtmlAgilityPack" Version="1.11.46"/>
-        <PackageReference Include="Jellyfin.Controller" Version="10.8.4"/>
-        <PackageReference Include="Jellyfin.Model" Version="10.8.4"/>
+        <PackageReference Include="AngleSharp" Version="1.0.7"/>
+        <PackageReference Include="AngleSharp.XPath" Version="2.0.3"/>
+        <PackageReference Include="Jellyfin.Controller" Version="10.8.13"/>
+        <PackageReference Include="Jellyfin.Model" Version="10.8.13"/>
         <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0"/>
-        <PackageReference Include="String.Similarity" Version="3.0.0" />
+        <PackageReference Include="String.Similarity" Version="3.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0"/>
+        <PackageReference Include="NUnit" Version="4.0.1"/>
+        <PackageReference Include="coverlet.collector" Version="6.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
     <ItemGroup>

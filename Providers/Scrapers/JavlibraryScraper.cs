@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using HtmlAgilityPack;
+using AngleSharp;
+using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
+using AngleSharp.Io;
+using AngleSharp.XPath;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
@@ -22,8 +25,9 @@ public class JavlibraryScraper : IScraper
 {
     internal const string Name = nameof(JavlibraryScraper);
 
-    private const string DomainUrlEn = "https://www.javlibrary.com/en/";
-    private const string DomainUrlJp = "https://www.javlibrary.com/ja/";
+    private const string DomainUrl = "https://www.javlibrary.com/";
+    private const string DomainUrlEn = DomainUrl + "en/";
+    private const string DomainUrlJp = DomainUrl + "ja/";
     private const string PageUrl = "?v={0}";
     private const string SearchUrl = "vl_searchbyid.php?keyword={0}";
     private const string BaseUrlJp = DomainUrlJp + SearchUrl;
@@ -67,7 +71,7 @@ public class JavlibraryScraper : IScraper
             return false;
         }
 
-        HtmlDocument docJp;
+        IDocument? docJp;
         if (scraperId == null)
         {
             _logger.LogDebug("{Name}: no scraper id, searching for global id: {Id}", Name, globalId);
@@ -102,7 +106,7 @@ public class JavlibraryScraper : IScraper
             docJp = await GetSingleResult(scraperId, cancellationToken);
         }
 
-        if (string.IsNullOrEmpty(docJp.Text))
+        if (string.IsNullOrEmpty(docJp?.Body?.Text()))
         {
             _logger.LogDebug("{Name}: searching returned empty page, error?", Name);
             return false;
@@ -146,8 +150,9 @@ public class JavlibraryScraper : IScraper
         }
 
         var doc = await GetSingleResult(scraperId, cancellationToken);
-        var url = doc.DocumentNode?.SelectSingleNode("//img[@id='video_jacket_img']")
-            ?.GetAttributeValue("src", null);
+        if (string.IsNullOrEmpty(doc?.Body?.Text())) return result;
+        var url = (doc.Body.SelectSingleNode("//img[@id='video_jacket_img']") as IHtmlImageElement)
+            ?.Source;
         if (string.IsNullOrEmpty(url) || url.Contains(NoImage)) return result;
         if (!url.StartsWith("http")) url = "https:" + url;
 
@@ -166,25 +171,25 @@ public class JavlibraryScraper : IScraper
         yield return ImageType.Box;
     }
 
-    private void FillJpMetadata(MetadataResult<Movie> metadata, HtmlDocument doc)
+    private void FillJpMetadata(MetadataResult<Movie> metadata, IDocument doc)
     {
         var globalId = metadata.Item.GetProviderId(IvInfoConstants.Name);
         var scraperId = GetScraperId(doc);
 
-        var titleJp = doc.DocumentNode.SelectNodes("//div[@id='video_title']/*/a")?.FindFirst("a")?.InnerText;
+        var titleJp = doc.Body.SelectSingleNode("//div[@id='video_title']/*/a")?.Text();
         titleJp = titleJp?.Replace(globalId ?? "", "").Trim();
         var releaseDateExists = DateTime.TryParse(
-            doc.DocumentNode.SelectSingleNode("//div[@id='video_date']/table/tr/td[@class='text']")
-                .InnerText, out var releaseDate);
-        var castJp = doc.DocumentNode?.SelectNodes("//span[@class='cast']/span[@class='star']")
-            ?.Where(node => !string.IsNullOrWhiteSpace(node.InnerText)).ToList()
-            .ConvertAll(input => input.InnerText.Trim());
-        var genres = doc.DocumentNode?.SelectNodes("//span[@class='genre']")?.ToList()
-            .ConvertAll(input => input.InnerText.Trim()).ToArray();
-        var label = doc.DocumentNode?.SelectSingleNode("//span[@class='label']/a")?.InnerText?.Trim();
-        var maker = doc.DocumentNode?.SelectSingleNode("//span[@class='maker']/a")?.InnerText?.Trim();
-        var director = doc.DocumentNode?.SelectSingleNode("//span[@class='director']/a")?.InnerText?.Trim();
-        var scoreText = doc.DocumentNode?.SelectSingleNode("//span[@class='score']")?.InnerText?.Replace("(", "")
+            doc.Body.SelectSingleNode("//div[@id='video_date']/table/tr/td[@class='text']")?
+                .Text(), out var releaseDate);
+        var castJp = doc.Body.SelectNodes("//span[@class='cast']/span[@class='star']")
+            ?.Where(node => !string.IsNullOrWhiteSpace(node.Text())).ToList()
+            .ConvertAll(input => input.Text().Trim());
+        var genres = doc.Body.SelectNodes("//span[@class='genre']")?.ToList()
+            .ConvertAll(input => input.Text().Trim()).ToArray();
+        var label = doc.Body.SelectSingleNode("//span[@class='label']/a")?.Text().Trim();
+        var maker = doc.Body.SelectSingleNode("//span[@class='maker']/a")?.Text().Trim();
+        var director = doc.Body.SelectSingleNode("//span[@class='director']/a")?.Text().Trim();
+        var scoreText = doc.Body.SelectSingleNode("//span[@class='score']")?.Text().Replace("(", "")
             .Replace(")", "");
         var score = string.IsNullOrWhiteSpace(scoreText)
             ? -1
@@ -240,14 +245,15 @@ public class JavlibraryScraper : IScraper
     {
         var globalId = metadata.Item.GetProviderId(IvInfoConstants.Name);
         var urlEn = DomainUrlEn + string.Format(PageUrl, scraperId);
-        var docEn = new HtmlDocument();
-        docEn.LoadHtml(await GetHtml(urlEn, cancellationToken));
+        var docEn = await GetHtml(urlEn, cancellationToken);
 
-        var titleEn = docEn.DocumentNode?.SelectNodes("//div[@id='video_title']/*/a")?.FindFirst("a")?.InnerText;
-        titleEn = titleEn?.Replace(globalId ?? "", "").Trim();
-        var director = docEn.DocumentNode?.SelectSingleNode("//span[@class='director']/a")?.InnerText?.Trim();
-        var castEn = docEn.DocumentNode?.SelectNodes("//span[@class='cast']/span[@class='star']")?.Where(node =>
-            !string.IsNullOrWhiteSpace(node.InnerText)).ToList().ConvertAll(input => input.InnerText.Trim());
+        if (string.IsNullOrEmpty(docEn?.Body?.Text())) return;
+
+        var titleEn = docEn.Body.SelectSingleNode("//div[@id='video_title']/*/a").Text();
+        titleEn = titleEn.Replace(globalId ?? "", "").Trim();
+        var director = docEn.Body.SelectSingleNode("//span[@class='director']/a")?.Text().Trim();
+        var castEn = docEn.Body.SelectNodes("//span[@class='cast']/span[@class='star']")?.Where(node =>
+            !string.IsNullOrWhiteSpace(node.Text())).ToList().ConvertAll(input => input.Text().Trim());
 
         if (!string.IsNullOrEmpty(titleEn) &&
             (string.IsNullOrWhiteSpace(metadata.Item.OriginalTitle) || IScraper.Overwriting) && GetEngTitles)
@@ -276,17 +282,17 @@ public class JavlibraryScraper : IScraper
     {
         var localResultList = new List<RemoteSearchResult>(resultList);
         var (multiple, doc) = await GetSearchResultsOrResultPage(globalId, cancellationToken);
-        if (string.IsNullOrEmpty(doc.Text)) return localResultList;
+        if (string.IsNullOrEmpty(doc?.Body?.Text())) return localResultList;
 
         if (multiple)
         {
-            var nodeCollection = doc.DocumentNode.SelectNodes("//div[@class='videos']/div[@class='video']/a");
-            foreach (var node in nodeCollection)
+            var nodeCollection = doc.Body.SelectNodes("//div[@class='videos']/div[@class='video']/a");
+            foreach (var node in nodeCollection.OfType<IHtmlAnchorElement>())
             {
-                var scraperId = node.GetAttributeValue("href", "").Split("=")[1];
-                var foundGlobalId = node.ChildNodes.FindFirst("div").InnerText;
-                var title = node.LastChild.InnerText.Replace(globalId, "").Trim();
-                var imgUrl = node.ChildNodes.FindFirst("img").GetAttributeValue("src", "");
+                var scraperId = node.Href.Split("=")[1];
+                var foundGlobalId = node.SelectSingleNode("div").Text();
+                var title = node.LastChild?.Text().Replace(globalId, "").Trim();
+                var imgUrl = (node.SelectSingleNode("img") as IHtmlImageElement)?.Source;
                 var nextIndex = localResultList.Count > 0 ? localResultList.Max(r => r.IndexNumber ?? 0) + 1 : 1;
                 var result = new RemoteSearchResult
                 {
@@ -308,10 +314,10 @@ public class JavlibraryScraper : IScraper
         else
         {
             var scraperId = GetScraperId(doc);
-            var title = doc.DocumentNode.SelectSingleNode("//div[@id='video_title']/*/a").InnerText
+            var title = doc.Body.SelectSingleNode("//div[@id='video_title']/*/a").Text()
                 .Replace(globalId, "").Trim();
-            var imgUrl = doc.DocumentNode.SelectSingleNode("//img[@id='video_jacket_img']")
-                .GetAttributeValue("src", null).Replace("pl.jpg", "ps.jpg");
+            var imgUrl = (doc.Body.SelectSingleNode("//img[@id='video_jacket_img']") as IHtmlImageElement)?
+                .Source?.Replace("pl.jpg", "ps.jpg");
             var nextIndex = localResultList.Count > 0 ? localResultList.Max(r => r.IndexNumber ?? 0) + 1 : 1;
             var result = new RemoteSearchResult
             {
@@ -338,19 +344,17 @@ public class JavlibraryScraper : IScraper
     /// <param name="globalId">global id</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>bool, HtmlDocument pair</returns>
-    private async Task<(bool, HtmlDocument)> GetSearchResultsOrResultPage(string globalId,
+    private async Task<(bool, IDocument?)> GetSearchResultsOrResultPage(string globalId,
         CancellationToken cancellationToken)
     {
         _logger.LogDebug("{Name}: searching for globalid: {Id}", Name, globalId);
-        if (string.IsNullOrEmpty(globalId)) return (false, new HtmlDocument());
+        if (string.IsNullOrEmpty(globalId)) return (false, null);
         var url = string.Format(BaseUrlJp, globalId);
-        var html = await GetHtml(url, cancellationToken);
-        if (string.IsNullOrEmpty(html)) return (false, new HtmlDocument());
-        var doc = new HtmlDocument();
-        doc.LoadHtml(html);
-        if (doc.DocumentNode.InnerText.Contains(NoResults)) return (false, new HtmlDocument());
+        var doc = await GetHtml(url, cancellationToken);
+        if (string.IsNullOrEmpty(doc?.Body?.Text())) return (false, null);
+        if (doc.Body.Text().Contains(NoResults)) return (false, null);
 
-        return doc.DocumentNode.InnerText.Contains(MultipleResults) ? (true, doc) : (false, doc);
+        return doc.Body.Text().Contains(MultipleResults) ? (true, doc) : (false, doc);
     }
 
     /// <summary>
@@ -359,53 +363,46 @@ public class JavlibraryScraper : IScraper
     /// <param name="scraperId">scraper id</param>
     /// <param name="cancellationToken">cancellation token</param>
     /// <returns>page for id</returns>
-    private async Task<HtmlDocument> GetSingleResult(string scraperId, CancellationToken cancellationToken)
+    private async Task<IDocument?> GetSingleResult(string scraperId, CancellationToken cancellationToken)
     {
         _logger.LogDebug("{Name}: getting page for scraper id: {Id}", Name, scraperId);
-        var doc = new HtmlDocument();
-        if (string.IsNullOrEmpty(scraperId)) return doc;
+        if (string.IsNullOrEmpty(scraperId)) return null;
         var url = DomainUrlJp + string.Format(PageUrl, scraperId);
-        var html = await GetHtml(url, cancellationToken);
-        if (string.IsNullOrEmpty(html)) return doc;
-        doc.LoadHtml(html);
-        return doc;
+        var doc = await GetHtml(url, cancellationToken);
+        return string.IsNullOrEmpty(doc?.Body?.Text()) ? null : doc;
     }
 
-    private string GetScraperId(HtmlDocument doc)
+    private string GetScraperId(IDocument doc)
     {
         _logger.LogDebug("{Name}: parsing scraperid", Name);
-        return doc.DocumentNode.SelectSingleNode("//div[@id='video_title']/*/a")
-            .GetAttributeValue("href", "").Split("=")[1];
+        return (doc.Body.SelectSingleNode("//div[@id='video_title']/*/a") as IHtmlAnchorElement)?.Href.Split("=")[1] ??
+               string.Empty;
     }
 
-    private async Task<string> GetHtml(string url, CancellationToken cancellationToken)
+    private async Task<IDocument?> GetHtml(string url, CancellationToken cancellationToken)
     {
         _logger.LogDebug("{Name}: loading html from url: {Url}", Name, url);
-        var cookies = new CookieContainer();
-        cookies.Add(
-            new Cookie("__cf_bm",
-                "Hu9B4Rh_fEnJtQ870COFtsI5D2o_d5NKSR0CTRCjBMU-1650621637-0-ARs0jjHbPVj2Fs0Q+pwe6xYylUgq2ITKMU7W1aRvvpib6WMMM/trVUroA1SrLLQiEOCuhG5bHQ4Ybz+qeZFyJxVQxAhAeoAy2QZQUL59JOAkfmgewtrR2Kf1x/wzXd0zjQ==",
-                "/", ".javlibrary.com"));
-        cookies.Add(new Cookie("cf_clearance",
-            "QuiobQ7bNToHC8orI_SCLBjzHgtviH2nPxMLIuzbC5M-1650621636-0-150", "/", ".javlibrary.com"));
-        var handler = new HttpClientHandler { CookieContainer = cookies };
-        var request = new HttpRequestMessage();
-        var client = new HttpClient(handler);
-        request.RequestUri = new Uri(url);
-        request.Method = HttpMethod.Get;
-        request.Headers.Referrer = new Uri("https://www.javlibrary.com/");
+        var cookieProvider = new MemoryCookieProvider();
+        cookieProvider.SetCookie(new Url(DomainUrl),
+            "__cf_bm=Hu9B4Rh_fEnJtQ870COFtsI5D2o_d5NKSR0CTRCjBMU-1650621637-0-ARs0jjHbPVj2Fs0Q+pwe6xYylUgq2ITKMU7W1aRvvpib6WMMM/trVUroA1SrLLQiEOCuhG5bHQ4Ybz+qeZFyJxVQxAhAeoAy2QZQUL59JOAkfmgewtrR2Kf1x/wzXd0zjQ==");
+        cookieProvider.SetCookie(new Url(DomainUrl),
+            "cf_clearance=QuiobQ7bNToHC8orI_SCLBjzHgtviH2nPxMLIuzbC5M-1650621636-0-150");
+        var config = AngleSharp.Configuration.Default.With(cookieProvider)
+            .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true }).WithXPath();
+        var context = BrowsingContext.New(config);
+        var document = await context.OpenAsync(url, cancellationToken);
+        //request.Headers.Referrer = new Uri("https://www.javlibrary.com/");
         try
         {
-            var response = await client.SendAsync(request, cancellationToken);
-            _logger.LogDebug("{Name}: GetHtml finished, status code: {Code}", Name, response.StatusCode);
-            return response.IsSuccessStatusCode
-                ? await response.Content.ReadAsStringAsync(cancellationToken)
-                : string.Empty;
+            _logger.LogDebug("{Name}: GetHtml finished, status code: {Code}", Name, document.StatusCode);
+            return document.StatusCode == HttpStatusCode.OK
+                ? document
+                : null;
         }
         catch (Exception e)
         {
             _logger.LogError("{Name}: could not load page {Url}\n{Message}", Name, url, e.Message);
-            return string.Empty;
+            return null;
         }
     }
 }
