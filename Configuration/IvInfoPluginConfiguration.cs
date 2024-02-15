@@ -13,5 +13,8 @@ namespace Jellyfin.Plugin.IvInfo.Configuration
         public bool DmmImgEnabled { get; set; }
         public bool GekiyasuImgEnabled { get; set; }
         public bool DmmUseProxy { get; set; }
+        public int JavLibraryScraperPriority { get; set; }
+        public int DmmScraperPriority { get; set; }
+        public int GekiyasuScraperPriority { get; set; }
     }
 }

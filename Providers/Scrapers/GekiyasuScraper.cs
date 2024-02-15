@@ -39,7 +39,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         private static bool FirstOnly => IvInfo.Instance?.Configuration.FirstOnly ?? false;
 
-        public int Priority => 4;
+        public int Priority => IvInfo.Instance?.Configuration.GekiyasuScraperPriority ?? 3;
 
         public bool Enabled => IvInfo.Instance?.Configuration.GekiyasuScraperEnabled ?? false;
         public bool ImgEnabled => IvInfo.Instance?.Configuration.GekiyasuImgEnabled ?? false;
@@ -54,8 +54,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             return await GetSearchResults(resultList, globalId, cancellationToken, FirstOnly);
         }
 
-        public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
-            bool overwrite = false)
+        public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken)
         {
             var scraperId = metadata.Item.GetProviderId(Name);
             var globalId = metadata.Item.GetProviderId(IvInfoConstants.Name) ??
@@ -103,18 +102,18 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             var maker = doc.DocumentNode.SelectNodes("//ul[@class='b-relative']/li/a")
                 ?.Where(node => node.InnerText == MakerLbl).FirstOrDefault()?.ParentNode?.LastChild?.InnerText;
 
-            if (!string.IsNullOrEmpty(title) && (overwrite || string.IsNullOrWhiteSpace(metadata.Item.Name)))
+            if (!string.IsNullOrEmpty(title) && (string.IsNullOrWhiteSpace(metadata.Item.Name)))
                 metadata.Item.Name = title;
-            if (!string.IsNullOrEmpty(description) && (overwrite || string.IsNullOrWhiteSpace(metadata.Item.Overview)))
+            if (!string.IsNullOrEmpty(description) && (string.IsNullOrWhiteSpace(metadata.Item.Overview)))
                 metadata.Item.Overview = description;
-            if (datePresent && (overwrite || metadata.Item.PremiereDate == null))
+            if (datePresent && (metadata.Item.PremiereDate == null))
                 metadata.Item.PremiereDate = releaseDate;
-            if (datePresent && (overwrite || metadata.Item.ProductionYear == null))
+            if (datePresent && (metadata.Item.ProductionYear == null))
                 metadata.Item.ProductionYear = releaseDate.Year;
-            if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.OfficialRating))
+            if (string.IsNullOrWhiteSpace(metadata.Item.OfficialRating))
                 metadata.Item.OfficialRating = "R";
-            if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.ExternalId)) metadata.Item.ExternalId = scraperId;
-            if (!string.IsNullOrEmpty(maker) && (overwrite || !metadata.Item.Studios.Contains(maker)))
+            if (string.IsNullOrWhiteSpace(metadata.Item.ExternalId)) metadata.Item.ExternalId = scraperId;
+            if (!string.IsNullOrEmpty(maker) && (!metadata.Item.Studios.Contains(maker)))
                 metadata.Item.AddStudio(maker);
 
             metadata.Item.SetProviderId(Name, scraperId);
@@ -124,8 +123,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         }
 
         public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
-            ImageType imageType = ImageType.Primary,
-            bool overwrite = false)
+            ImageType imageType = ImageType.Primary)
         {
             _logger.LogDebug("{Name}: searching for image {ImageType}", Name, imageType);
             var result = new List<RemoteImageInfo>();
@@ -136,7 +134,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 return await Task.Run(() => result, cancellationToken);
             }
 
-            if (item.ImageInfos.Any(i => i.Type == imageType) && !overwrite)
+            if (item.ImageInfos.Any(i => i.Type == imageType))
             {
                 _logger.LogDebug("{Name}: {ImageType} image already exists, not overwriting", Name, imageType);
                 return await Task.Run(() => result, cancellationToken);
@@ -159,8 +157,8 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
             result = imageType switch
             {
-                ImageType.Primary => IScraper.AddOrOverwrite(result, imageType, thumbUrl, overwrite),
-                ImageType.Box => IScraper.AddOrOverwrite(result, imageType, boxUrl, overwrite),
+                ImageType.Primary => IScraper.AddOrOverwrite(result, imageType, thumbUrl),
+                ImageType.Box => IScraper.AddOrOverwrite(result, imageType, boxUrl),
                 _ => result
             };
 
