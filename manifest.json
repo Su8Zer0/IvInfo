@@ -1,52 +1,76 @@
-﻿[
-  {
-    "category": "Metadata",
-    "guid": "abe0c619-a145-4890-896b-cb1089ade4fe",
-    "name": "IvInfo",
-    "description": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
-    "owner": "SubZeroPL",
-    "overview": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
-    "versions": [
-      {
-        "checksum": "32FE1299F6BA49B56938EDF19B80CDCC",
-        "changelog": "small fix for JavLibrary entries without pictures",
-        "targetAbi": "10.8.0.0",
-        "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.6.1.zip",
-        "timestamp": "2023-09-27T00:00:00.0000000Z",
-        "version": "0.1.6.1"
-      },
-      {
-        "checksum": "A7DB3FED5EB682CF54AF862C41DB38B9",
-        "changelog": "added external ids, remade searching, merging of results from different scrapers, extended configuration page, moved configuration page js to separate file, dmm scraper currently not working (no proxy)",
-        "targetAbi": "10.8.0.0",
-        "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.6.0.zip",
-        "timestamp": "2023-09-26T00:00:00.0000000Z",
-        "version": "0.1.6.0"
-      },
-      {
-        "checksum": "25153A0040089B1431E2177B79B1334B",
-        "changelog": "scraper priority configuration",
-        "targetAbi": "10.8.0.0",
-        "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.5.4.zip",
-        "timestamp": "2023-01-18T00:00:00.0000000Z",
-        "version": "0.1.5.4"
-      },
-      {
-        "checksum": "F639D027A933607110E87B4993901AAA",
-        "changelog": "scrapers overhaul",
-        "targetAbi": "10.8.0.0",
-        "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.5.3.zip",
-        "timestamp": "2023-01-14T00:00:00.0000000Z",
-        "version": "0.1.5.3"
-      },
-      {
-        "checksum": "A5F2385BFBDF9B29D2C2C8993DE7686A",
-        "changelog": "small fix for Gekiyasu scraper",
-        "targetAbi": "10.8.0.0",
-        "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.5.1.zip",
-        "timestamp": "2022-06-29T00:00:00.0000000Z",
-        "version": "0.1.5.1"
-      }
-    ]
-  }
+[
+    {
+        "category": "Metadata",
+        "guid": "abe0c619-a145-4890-896b-cb1089ade4fe",
+        "name": "IvInfo",
+        "description": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp.  Fetches video metadata and cover/box/screenshot images. \n",
+        "owner": "SubZeroPL",
+        "overview": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
+        "versions": [
+            {
+                "version": "0.1.7.0",
+                "changelog": "plugin configuration changes\nscrapers remake\nadded unit tests\nsome code cleanups\n",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://subzeropl.mywire.org/jf-plugin-repo/IvInfo/ivinfo_0.1.7.0.zip",
+                "checksum": "f2d2c22370caca55b572591c94617e7f",
+                "timestamp": "2024-01-09T10:24:07Z"
+            },
+            {
+                "version": "0.1.6.3",
+                "changelog": "better handling of plugin version\n",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/ivinfo_0.1.6.3.zip",
+                "checksum": "5d5a242d6c7a8f56f9a84988fbf3e3aa",
+                "timestamp": "2023-09-28T13:07:08Z"
+            },
+            {
+                "version": "0.1.6.2",
+                "changelog": "CI changes\n",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/ivinfo_0.1.6.2.zip",
+                "checksum": "7eb95b2373252eb7441630ef80de1bb2",
+                "timestamp": "2023-09-28T11:38:12Z"
+            },
+            {
+                "checksum": "32FE1299F6BA49B56938EDF19B80CDCC",
+                "changelog": "small fix for JavLibrary entries without pictures",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.6.1.zip",
+                "timestamp": "2023-09-27T00:00:00.0000000Z",
+                "version": "0.1.6.1"
+            },
+            {
+                "checksum": "A7DB3FED5EB682CF54AF862C41DB38B9",
+                "changelog": "added external ids, remade searching, merging of results from different scrapers, extended configuration page, moved configuration page js to separate file, dmm scraper currently not working (no proxy)",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.6.0.zip",
+                "timestamp": "2023-09-26T00:00:00.0000000Z",
+                "version": "0.1.6.0"
+            },
+            {
+                "checksum": "25153A0040089B1431E2177B79B1334B",
+                "changelog": "scraper priority configuration",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.5.4.zip",
+                "timestamp": "2023-01-18T00:00:00.0000000Z",
+                "version": "0.1.5.4"
+            },
+            {
+                "checksum": "F639D027A933607110E87B4993901AAA",
+                "changelog": "scrapers overhaul",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.5.3.zip",
+                "timestamp": "2023-01-14T00:00:00.0000000Z",
+                "version": "0.1.5.3"
+            },
+            {
+                "checksum": "A5F2385BFBDF9B29D2C2C8993DE7686A",
+                "changelog": "small fix for Gekiyasu scraper",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://subzeropl.duckdns.org/jf-plugin-repo/Jellyfin.Plugin.IvInfo/Jellyfin.Plugin.IvInfo_0.1.5.1.zip",
+                "timestamp": "2022-06-29T00:00:00.0000000Z",
+                "version": "0.1.5.1"
+            }
+        ]
+    }
 ]
