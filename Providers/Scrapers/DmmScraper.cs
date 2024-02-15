@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using HtmlAgilityPack;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -33,20 +35,22 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         public bool Enabled => IvInfo.Instance?.Configuration.DmmScraperEnabled ?? false;
 
-        public IEnumerable<RemoteSearchResult> GetSearchResults(MovieInfo info)
+        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo info,
+            CancellationToken cancellationToken)
         {
             _logger.LogDebug("{Name}: Searching not supported", Name);
-            yield break;
+            return await Task.Run(() => new List<RemoteSearchResult>().AsEnumerable(), cancellationToken);
         }
 
-        public bool FillMetadata(MetadataResult<Movie> metadata, bool overwrite = false)
+        public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
+            bool overwrite = false)
         {
             _logger.LogDebug("{Name}: Metadata lookup not supported", Name);
-            return false;
+            return await Task.Run(() => false, cancellationToken);
         }
 
-        public IEnumerable<RemoteImageInfo> GetImages(BaseItem item, ImageType imageType = ImageType.Primary,
-            bool overwrite = false)
+        public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
+            ImageType imageType = ImageType.Primary, bool overwrite = false)
         {
             _logger.LogDebug("Getting image type {Type} for item {Name}", imageType, item.Name);
             var result = new List<RemoteImageInfo>();
@@ -61,7 +65,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             _logger.LogDebug("PageUrl: {Url}", url);
 
             var doc = new HtmlDocument();
-            var html = GetHtml(url);
+            var html = await GetHtml(url, cancellationToken);
             if (string.IsNullOrEmpty(html)) return result;
             doc.LoadHtml(html);
 
@@ -89,7 +93,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                     break;
             }
 
-            return result;
+            return await Task.Run(() => result, cancellationToken);
         }
 
         public IEnumerable<ImageType> HandledImageTypes()
@@ -99,20 +103,22 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             yield return ImageType.Screenshot;
         }
 
-        private string GetHtml(string url)
+        private async Task<string> GetHtml(string url, CancellationToken cancellationToken)
         {
             _logger.LogDebug("GetHtml: {Url}", url);
-            var request = (HttpWebRequest)WebRequest.Create(url);
-            request.CookieContainer = new CookieContainer();
-            request.CookieContainer.Add(new Uri(DomainUrl), new Cookie("age_check_done", "1"));
-            request.CookieContainer.Add(new Uri(DomainUrl), new Cookie("cklg", "ja"));
+            var cookies = new CookieContainer();
+            cookies.Add(new Uri(DomainUrl), new Cookie("age_check_done", "1"));
+            cookies.Add(new Uri(DomainUrl), new Cookie("cklg", "ja"));
+            var handler = new HttpClientHandler { CookieContainer = cookies };
+            var request = new HttpRequestMessage();
+            request.RequestUri = new Uri(url);
+            request.Method = HttpMethod.Get;
+            var client = new HttpClient(handler);
+
             try
             {
-                var response = (HttpWebResponse)request.GetResponse();
-                var stream = response.GetResponseStream();
-
-                using var reader = new StreamReader(stream);
-                return reader.ReadToEnd();
+                var response = await client.SendAsync(request, cancellationToken);
+                return await response.Content.ReadAsStringAsync(cancellationToken);
             }
             catch (WebException e)
             {

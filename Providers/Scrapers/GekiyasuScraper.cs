@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using HtmlAgilityPack;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -34,14 +36,16 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         public bool Enabled => IvInfo.Instance?.Configuration.GekiyasuScraperEnabled ?? false;
 
-        public IEnumerable<RemoteSearchResult> GetSearchResults(MovieInfo info)
+        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo info,
+            CancellationToken cancellationToken)
         {
             var globalId = info.GetProviderId(IvInfoConstants.Name) ?? IvInfoProvider.GetId(info);
             _logger.LogDebug("{Name}: searching for id: {Id}", Name, globalId);
-            if (string.IsNullOrEmpty(globalId)) yield break;
+            var resultList = new List<RemoteSearchResult>();
+            if (string.IsNullOrEmpty(globalId)) return resultList;
 
             var (multiple, doc) = GetSearchResultsPage(globalId);
-            if (string.IsNullOrEmpty(doc.Text)) yield break;
+            if (string.IsNullOrEmpty(doc.Text)) return resultList;
             if (multiple)
             {
                 var nodeCollection =
@@ -59,7 +63,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                         SearchProviderName = Name
                     };
                     result.SetProviderId(Name, scraperId);
-                    yield return result;
+                    resultList.Add(result);
                 }
             }
             else
@@ -76,11 +80,14 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                     SearchProviderName = Name
                 };
                 result.SetProviderId(Name, scraperId);
-                yield return result;
+                resultList.Add(result);
             }
+
+            return await Task.Run(() => resultList, cancellationToken);
         }
 
-        public bool FillMetadata(MetadataResult<Movie> metadata, bool overwrite = false)
+        public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
+            bool overwrite = false)
         {
             var scraperId = metadata.Item.GetProviderId(Name);
             var globalId = metadata.Item.GetProviderId(IvInfoConstants.Name);
@@ -96,7 +103,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 doc = GetSingleResult(scraperId);
             }
 
-            if (string.IsNullOrEmpty(doc.Text)) return false;
+            if (string.IsNullOrEmpty(doc.Text)) return await Task.Run(() => false, cancellationToken);
 
             scraperId = GetScraperId(doc);
 
@@ -124,10 +131,11 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
             metadata.Item.SetProviderId(Name, scraperId);
 
-            return true;
+            return await Task.Run(() => true, cancellationToken);
         }
 
-        public IEnumerable<RemoteImageInfo> GetImages(BaseItem item, ImageType imageType = ImageType.Primary,
+        public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
+            ImageType imageType = ImageType.Primary,
             bool overwrite = false)
         {
             var result = new List<RemoteImageInfo>();
@@ -156,7 +164,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 _ => result
             };
 
-            return result;
+            return await Task.Run(() => result, cancellationToken);
         }
 
         public IEnumerable<ImageType> HandledImageTypes()

@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
@@ -24,25 +26,25 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         public bool Enabled => false;
 
-        public IEnumerable<RemoteSearchResult> GetSearchResults(MovieInfo info)
+        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo info,
+            CancellationToken cancellationToken)
         {
             var globalId = info.GetProviderId(IvInfoConstants.Name);
             _logger.LogDebug("{Name}: searching for id: {Id}", Name, globalId);
-            yield break;
+            return await Task.Run(() => new List<RemoteSearchResult>(), cancellationToken);
         }
 
-        public bool FillMetadata(MetadataResult<Movie> metadata, bool overwrite = false)
-        {
-            var id = metadata.Item.GetProviderId(IvInfoConstants.Name);
-            if (string.IsNullOrEmpty(id)) return false;
-
-            return false;
-        }
-
-        public IEnumerable<RemoteImageInfo> GetImages(BaseItem item, ImageType imageType = ImageType.Primary,
+        public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
             bool overwrite = false)
         {
-            yield break;
+            return await Task.Run(() => false, cancellationToken);
+        }
+
+        public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
+            ImageType imageType = ImageType.Primary,
+            bool overwrite = false)
+        {
+            return await Task.Run(() => new List<RemoteImageInfo>(), cancellationToken);
         }
 
         public IEnumerable<ImageType> HandledImageTypes()

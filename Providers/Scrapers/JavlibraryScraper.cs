@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using HtmlAgilityPack;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -38,14 +40,17 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         public bool Enabled => IvInfo.Instance?.Configuration.JavlibraryScraperEnabled ?? false;
 
-        public IEnumerable<RemoteSearchResult> GetSearchResults(MovieInfo info)
+        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo info,
+            CancellationToken cancellationToken)
         {
             var globalId = info.GetProviderId(IvInfoConstants.Name) ?? IvInfoProvider.GetId(info);
             _logger.LogDebug("{Name}: searching for id: {Id}", Name, globalId);
-            if (string.IsNullOrEmpty(globalId)) yield break;
+            var resultList = new List<RemoteSearchResult>();
+            if (string.IsNullOrEmpty(globalId)) return resultList;
 
-            var (multiple, doc) = GetSearchResultsOrResultPage(globalId);
-            if (string.IsNullOrEmpty(doc.Text)) yield break;
+            var (multiple, doc) = await GetSearchResultsOrResultPage(globalId, cancellationToken);
+            if (string.IsNullOrEmpty(doc.Text)) return resultList;
+
             if (multiple)
             {
                 var nodeCollection = doc.DocumentNode.SelectNodes("//div[@class='videos']/div[@class='video']/a");
@@ -69,7 +74,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                     };
                     result.SetProviderId(Name, scraperId);
                     result.SetProviderId(nameof(DmmScraper), dmmId);
-                    yield return result;
+                    resultList.Add(result);
                 }
             }
             else
@@ -88,11 +93,14 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 };
                 result.SetProviderId(Name, scraperId);
                 result.SetProviderId(nameof(DmmScraper), dmmId);
-                yield return result;
+                resultList.Add(result);
             }
+
+            return resultList;
         }
 
-        public bool FillMetadata(MetadataResult<Movie> metadata, bool overwrite = false)
+        public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
+            bool overwrite = false)
         {
             var scraperId = metadata.Item.GetProviderId(Name);
             var globalId = IvInfoProvider.GetId(metadata.Item.GetLookupInfo());
@@ -100,13 +108,12 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             HtmlDocument doc;
             if (scraperId == null)
             {
-                bool multi;
-                (multi, doc) = GetSearchResultsOrResultPage(globalId);
+                (var multi, doc) = await GetSearchResultsOrResultPage(globalId, cancellationToken);
                 if (multi) return false;
             }
             else
             {
-                doc = GetSingleResult(scraperId);
+                doc = await GetSingleResult(scraperId, cancellationToken);
             }
 
             if (string.IsNullOrEmpty(doc.Text)) return false;
@@ -115,7 +122,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             globalId = GetGlobalId(doc);
             var urlJa = DomainUrlJa + string.Format(PageUrl, scraperId);
             var docJa = new HtmlDocument();
-            docJa.LoadHtml(GetHtml(urlJa));
+            docJa.LoadHtml(await GetHtml(urlJa, cancellationToken));
 
             var title = doc.DocumentNode.SelectNodes("//div[@id='video_title']/*/a")?.FindFirst("a")?.InnerText;
             title = title?.Replace(globalId, "").Trim();
@@ -188,7 +195,8 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             return true;
         }
 
-        public IEnumerable<RemoteImageInfo> GetImages(BaseItem item, ImageType imageType = ImageType.Primary,
+        public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
+            ImageType imageType = ImageType.Primary,
             bool overwrite = false)
         {
             var result = new List<RemoteImageInfo>();
@@ -200,7 +208,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             var scraperId = item.GetProviderId(Name);
             if (string.IsNullOrEmpty(scraperId)) return result;
 
-            var doc = GetSingleResult(scraperId);
+            var doc = await GetSingleResult(scraperId, cancellationToken);
             var url = doc.DocumentNode?.SelectSingleNode("//img[@id='video_jacket_img']")
                 ?.GetAttributeValue("src", null);
             if (string.IsNullOrEmpty(url)) return result;
@@ -221,13 +229,15 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         ///     When there were only one result returns false and result page. If nothing was found returns false and empty page.
         /// </summary>
         /// <param name="globalId">global id</param>
+        /// <param name="cancellationToken">cancellation token</param>
         /// <returns>bool, HtmlDocument pair</returns>
-        private (bool, HtmlDocument) GetSearchResultsOrResultPage(string globalId)
+        private async Task<(bool, HtmlDocument)> GetSearchResultsOrResultPage(string globalId,
+            CancellationToken cancellationToken)
         {
             _logger.LogDebug("{Name}: searching for id: {Id}", Name, globalId);
             if (string.IsNullOrEmpty(globalId)) return (false, new HtmlDocument());
             var url = string.Format(BaseUrlEn, globalId);
-            var html = GetHtml(url);
+            var html = await GetHtml(url, cancellationToken);
             if (string.IsNullOrEmpty(html)) return (false, new HtmlDocument());
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
@@ -240,14 +250,15 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         ///     Returns result page for specific scraper id or empty page if not found.
         /// </summary>
         /// <param name="scraperId">scraper id</param>
+        /// <param name="cancellationToken">cancellation token</param>
         /// <returns>page for id</returns>
-        private HtmlDocument GetSingleResult(string scraperId)
+        private async Task<HtmlDocument> GetSingleResult(string scraperId, CancellationToken cancellationToken)
         {
             _logger.LogDebug("{Name}: getting page for id: {Id}", Name, scraperId);
             var doc = new HtmlDocument();
             if (string.IsNullOrEmpty(scraperId)) return doc;
             var url = DomainUrlEn + string.Format(PageUrl, scraperId);
-            var html = GetHtml(url);
+            var html = await GetHtml(url, cancellationToken);
             if (string.IsNullOrEmpty(html)) return doc;
             doc.LoadHtml(html);
             return doc;
@@ -264,25 +275,25 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             return doc.DocumentNode.SelectSingleNode("//div[@id='video_id']/table/tr/td[@class='text']").InnerText;
         }
 
-        private string GetHtml(string url)
+        private async Task<string> GetHtml(string url, CancellationToken cancellationToken)
         {
-            var request = (HttpWebRequest)WebRequest.Create(url);
-            request.Referer = "https://www.javlibrary.com/";
-            request.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:99.0) Gecko/20100101 Firefox/99.0";
-            request.CookieContainer = new CookieContainer();
-            request.CookieContainer.Add(
+            var cookies = new CookieContainer();
+            cookies.Add(
                 new Cookie("__cf_bm",
                     "Hu9B4Rh_fEnJtQ870COFtsI5D2o_d5NKSR0CTRCjBMU-1650621637-0-ARs0jjHbPVj2Fs0Q+pwe6xYylUgq2ITKMU7W1aRvvpib6WMMM/trVUroA1SrLLQiEOCuhG5bHQ4Ybz+qeZFyJxVQxAhAeoAy2QZQUL59JOAkfmgewtrR2Kf1x/wzXd0zjQ==",
                     "/", ".javlibrary.com"));
-            request.CookieContainer.Add(new Cookie("cf_clearance",
+            cookies.Add(new Cookie("cf_clearance",
                 "QuiobQ7bNToHC8orI_SCLBjzHgtviH2nPxMLIuzbC5M-1650621636-0-150", "/", ".javlibrary.com"));
+            var handler = new HttpClientHandler { CookieContainer = cookies };
+            var request = new HttpRequestMessage();
+            var client = new HttpClient(handler);
+            request.RequestUri = new Uri(url);
+            request.Method = HttpMethod.Get;
+            request.Headers.Referrer = new Uri("https://www.javlibrary.com/");
             try
             {
-                var response = (HttpWebResponse)request.GetResponse();
-                var stream = response.GetResponseStream();
-
-                using var reader = new StreamReader(stream);
-                return reader.ReadToEnd();
+                var response = await client.SendAsync(request, cancellationToken);
+                return await response.Content.ReadAsStringAsync(cancellationToken);
             }
             catch (WebException e)
             {
