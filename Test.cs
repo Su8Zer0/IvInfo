@@ -19,14 +19,14 @@ namespace Jellyfin.Plugin.IvInfo
             var mi = new MovieInfo
             {
                 Name = "Name",
-                Path = "/media/iv/[IMBD-168].mp4"
+                Path = "/media/iv/[REBD-149].mp4"
             };
             // mi.SetProviderId("JavlibraryScraper", "javme3a55i");
-            mi.SetProviderId(IvInfoConstants.Name, "IMBD-168");
-            p.GetSearchResults(mi, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
-            // var mr = p.GetMetadata(mi, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
-            // mr.Item.PreferredMetadataLanguage = "en";
-            // p.GetImages(mr.Item, CancellationToken.None);
+            mi.SetProviderId(IvInfoConstants.Name, "REBD-149");
+            //p.GetSearchResults(mi, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+            var mr = p.GetMetadata(mi, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+            mr.Item.PreferredMetadataLanguage = "en";
+            p.GetImages(mr.Item, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 }

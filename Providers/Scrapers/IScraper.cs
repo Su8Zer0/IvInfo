@@ -22,11 +22,12 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         /// <summary>
         ///     Returns search results for this item info.
         /// </summary>
+        /// <param name="resultList"></param>
         /// <param name="info">searched item</param>
         /// <param name="cancellationToken">cancellation token</param>
         /// <returns>list with search results</returns>
-        public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo info,
-            CancellationToken cancellationToken);
+        public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
+            MovieInfo info, CancellationToken cancellationToken);
 
         /// <summary>
         ///     Fills metadata for <see cref="MetadataResult{T}" />. When <c>overwrite</c> is true then all (available) data is
@@ -58,7 +59,8 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         public IEnumerable<ImageType> HandledImageTypes();
 
         /// <summary>
-        ///     Adds new image to list, if image of this type already exists in the list and overwrite is true then existing image
+        ///     Adds new image to list.<br />
+        ///     If image of this type already exists in the list and overwrite is true then existing image
         ///     is removed and new one added, otherwise nothing is done.
         /// </summary>
         /// <param name="images">list with images</param>

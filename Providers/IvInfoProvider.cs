@@ -68,10 +68,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers
             {
                 foreach (var imageType in scraper.HandledImageTypes())
                 {
-                    if (GetSupportedImages(item).Contains(imageType))
-                    {
-                        result.AddRange(await scraper.GetImages(item, cancellationToken, imageType));
-                    }
+                    result.AddRange(await scraper.GetImages(item, cancellationToken, imageType));
                 }
             }
 
@@ -90,7 +87,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers
             if (string.IsNullOrEmpty(id)) return result.OrderByString(_ => "");
             var scrapers = GetAllScrapers();
             foreach (var scraper in scrapers)
-                result.AddRange(await scraper.GetSearchResults(searchInfo, cancellationToken));
+                result.AddRange(await scraper.GetSearchResults(result, searchInfo, cancellationToken));
 
             return result.OrderByString(_ => "");
         }
