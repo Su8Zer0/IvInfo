@@ -17,13 +17,13 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers;
+namespace IvInfo.Providers.Scrapers;
 
 // ReSharper disable once UnusedType.Global
 // ReSharper disable once ClassNeverInstantiated.Global
 public class JavlibraryScraper : IScraper
 {
-    internal const string Name = nameof(JavlibraryScraper);
+    public const string Name = nameof(JavlibraryScraper);
 
     private const string DomainUrl = "https://www.javlibrary.com/";
     private const string DomainUrlEn = DomainUrl + "en/";
@@ -42,12 +42,12 @@ public class JavlibraryScraper : IScraper
         _logger = logger;
     }
 
-    private static bool GetEngTitles => IvInfo.Instance?.Configuration.JavlibraryTitles ?? false;
-    private static bool GetEngCastNames => IvInfo.Instance?.Configuration.JavlibraryCast ?? false;
+    private static bool GetEngTitles => global::IvInfo.IvInfo.Instance?.Configuration.JavlibraryTitles ?? false;
+    private static bool GetEngCastNames => global::IvInfo.IvInfo.Instance?.Configuration.JavlibraryCast ?? false;
 
-    public bool Enabled => IvInfo.Instance?.Configuration.JavlibraryScraperEnabled ?? false;
-    public bool ImgEnabled => IvInfo.Instance?.Configuration.JavlibraryImgEnabled ?? false;
-    public int Priority => IvInfo.Instance?.Configuration.JavLibraryScraperPriority ?? 2;
+    public bool Enabled => global::IvInfo.IvInfo.Instance?.Configuration.JavlibraryScraperEnabled ?? false;
+    public bool ImgEnabled => global::IvInfo.IvInfo.Instance?.Configuration.JavlibraryImgEnabled ?? false;
+    public int Priority => global::IvInfo.IvInfo.Instance?.Configuration.JavLibraryScraperPriority ?? 2;
 
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
         MovieInfo info, CancellationToken cancellationToken)

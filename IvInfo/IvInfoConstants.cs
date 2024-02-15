@@ -1,4 +1,4 @@
-﻿namespace Jellyfin.Plugin.IvInfo;
+﻿namespace IvInfo;
 
 public static class IvInfoConstants
 {

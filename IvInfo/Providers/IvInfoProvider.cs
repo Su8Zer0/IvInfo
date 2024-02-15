@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using F23.StringSimilarity;
-using Jellyfin.Plugin.IvInfo.Providers.Scrapers;
+using IvInfo.Providers.Scrapers;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -16,7 +16,7 @@ using MediaBrowser.Model.Extensions;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.IvInfo.Providers;
+namespace IvInfo.Providers;
 
 /// <summary>
 ///     IV Info Provider.

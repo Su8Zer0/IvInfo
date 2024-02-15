@@ -7,19 +7,19 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers;
+namespace IvInfo.Providers.Scrapers;
 
 public interface IScraper
 {
     /// <summary>
     ///     Should scraper fetch only first result if multiple matches were found.
     /// </summary>
-    protected static bool FirstOnly => IvInfo.Instance?.Configuration.FirstOnly ?? false;
+    protected static bool FirstOnly => global::IvInfo.IvInfo.Instance?.Configuration.FirstOnly ?? false;
 
     /// <summary>
     ///     Should scrapers called later in scraping order replace data already filled by earlier scrapers.
     /// </summary>
-    protected static bool Overwriting => IvInfo.Instance?.Configuration.Overwriting ?? false;
+    protected static bool Overwriting => global::IvInfo.IvInfo.Instance?.Configuration.Overwriting ?? false;
 
     /// <summary>
     ///     Is scraper enabled in configuration. Enabled scrapers are used in searching and metadata fetching.
