@@ -40,10 +40,10 @@ public class GekiyasuScraper : IScraper
         _logger = logger;
     }
 
-    public int Priority => global::IvInfo.IvInfo.Instance?.Configuration.GekiyasuScraperPriority ?? 3;
+    public int Priority => IvInfo.Instance?.Configuration.GekiyasuScraperPriority ?? 3;
 
-    public bool Enabled => global::IvInfo.IvInfo.Instance?.Configuration.GekiyasuScraperEnabled ?? false;
-    public bool ImgEnabled => global::IvInfo.IvInfo.Instance?.Configuration.GekiyasuImgEnabled ?? false;
+    public bool Enabled => IvInfo.Instance?.Configuration.GekiyasuScraperEnabled ?? false;
+    public bool ImgEnabled => IvInfo.Instance?.Configuration.GekiyasuImgEnabled ?? false;
 
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
         MovieInfo info, CancellationToken cancellationToken)
@@ -71,12 +71,6 @@ public class GekiyasuScraper : IScraper
         if (scraperId == null)
         {
             _logger.LogDebug("{Name}: no scraper id, searching for global id: {Id}", Name, globalId);
-            if (info.IsAutomated)
-            {
-                _logger.LogDebug("Manual search should have id already, aborting");
-                return false;
-            }
-
             if (globalId == null)
             {
                 _logger.LogError("Could not determine global id");

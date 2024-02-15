@@ -47,10 +47,10 @@ public class DmmScraper : IScraper
         _logger = logger;
     }
 
-    public bool Enabled => global::IvInfo.IvInfo.Instance?.Configuration.DmmScraperEnabled ?? false;
-    public bool ImgEnabled => global::IvInfo.IvInfo.Instance?.Configuration.DmmImgEnabled ?? false;
+    public bool Enabled => IvInfo.Instance?.Configuration.DmmScraperEnabled ?? false;
+    public bool ImgEnabled => IvInfo.Instance?.Configuration.DmmImgEnabled ?? false;
 
-    public int Priority => global::IvInfo.IvInfo.Instance?.Configuration.DmmScraperPriority ?? 1;
+    public int Priority => IvInfo.Instance?.Configuration.DmmScraperPriority ?? 1;
 
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
         MovieInfo info, CancellationToken cancellationToken)
@@ -77,12 +77,6 @@ public class DmmScraper : IScraper
         if (scraperId == null)
         {
             _logger.LogDebug("{Name}: no scraper id, searching for global id: {Id}", Name, globalId);
-            if (info.IsAutomated)
-            {
-                _logger.LogDebug("Manual search should have id already, aborting");
-                return false;
-            }
-
             if (globalId == null)
             {
                 _logger.LogError("Could not determine global id");
@@ -318,6 +312,8 @@ public class DmmScraper : IScraper
 
             if (firstOnly && !info.IsAutomated) break;
         }
+        
+        _logger.LogDebug("{Name}: Found {Num} results", Name, localResultList.Count);
 
         return localResultList;
     }

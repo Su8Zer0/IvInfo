@@ -1,4 +1,5 @@
 ﻿using MediaBrowser.Model.Plugins;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace IvInfo.Configuration;
 
@@ -11,9 +12,9 @@ public class IvInfoPluginConfiguration : BasePluginConfiguration
     public bool JavlibraryImgEnabled { get; set; }
     public bool JavlibraryTitles { get; set; }
     public bool JavlibraryCast { get; set; }
+    public bool JavlibraryTags { get; set; }
     public bool DmmScraperEnabled { get; set; }
     public bool DmmImgEnabled { get; set; }
-    public bool DmmUseProxy { get; set; }
     public bool GekiyasuScraperEnabled { get; set; }
     public bool GekiyasuImgEnabled { get; set; }
     public int JavLibraryScraperPriority { get; set; }

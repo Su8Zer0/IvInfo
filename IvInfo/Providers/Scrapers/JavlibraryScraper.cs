@@ -42,12 +42,13 @@ public class JavlibraryScraper : IScraper
         _logger = logger;
     }
 
-    private static bool GetEngTitles => global::IvInfo.IvInfo.Instance?.Configuration.JavlibraryTitles ?? false;
-    private static bool GetEngCastNames => global::IvInfo.IvInfo.Instance?.Configuration.JavlibraryCast ?? false;
+    private static bool EngTitles => IvInfo.Instance?.Configuration.JavlibraryTitles ?? false;
+    private static bool EngCastNames => IvInfo.Instance?.Configuration.JavlibraryCast ?? false;
+    private static bool EngTags => IvInfo.Instance?.Configuration.JavlibraryTags ?? false;
 
-    public bool Enabled => global::IvInfo.IvInfo.Instance?.Configuration.JavlibraryScraperEnabled ?? false;
-    public bool ImgEnabled => global::IvInfo.IvInfo.Instance?.Configuration.JavlibraryImgEnabled ?? false;
-    public int Priority => global::IvInfo.IvInfo.Instance?.Configuration.JavLibraryScraperPriority ?? 2;
+    public bool Enabled => IvInfo.Instance?.Configuration.JavlibraryScraperEnabled ?? false;
+    public bool ImgEnabled => IvInfo.Instance?.Configuration.JavlibraryImgEnabled ?? false;
+    public int Priority => IvInfo.Instance?.Configuration.JavLibraryScraperPriority ?? 2;
 
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
         MovieInfo info, CancellationToken cancellationToken)
@@ -75,12 +76,6 @@ public class JavlibraryScraper : IScraper
         if (scraperId == null)
         {
             _logger.LogDebug("{Name}: no scraper id, searching for global id: {Id}", Name, globalId);
-            if (info.IsAutomated)
-            {
-                _logger.LogDebug("Manual search should have id already, aborting");
-                return false;
-            }
-
             if (globalId == null)
             {
                 _logger.LogError("Could not determine global id");
@@ -116,7 +111,7 @@ public class JavlibraryScraper : IScraper
 
         FillJpMetadata(metadata, docJp);
 
-        if (GetEngTitles || GetEngCastNames) await FillEnMetadata(metadata, scraperId, cancellationToken);
+        if (EngTitles || EngCastNames || EngTags) await FillEnMetadata(metadata, scraperId, cancellationToken);
 
         metadata.Item.SetProviderId(Name, scraperId);
 
@@ -179,7 +174,7 @@ public class JavlibraryScraper : IScraper
         var titleJp = doc.Body.SelectSingleNode("//div[@id='video_title']/*/a")?.Text();
         titleJp = titleJp?.Replace(globalId ?? "", "").Trim();
         var releaseDateExists = DateTime.TryParse(
-            doc.Body.SelectSingleNode("//div[@id='video_date']/table/tr/td[@class='text']")?
+            doc.Body.SelectSingleNode("//div[@id='video_date']/table/tbody/tr/td[@class='text']")?
                 .Text(), out var releaseDate);
         var castJp = doc.Body.SelectNodes("//span[@class='cast']/span[@class='star']")
             ?.Where(node => !string.IsNullOrWhiteSpace(node.Text())).ToList()
@@ -215,7 +210,7 @@ public class JavlibraryScraper : IScraper
             (string.IsNullOrEmpty(metadata.Item.CollectionName) || IScraper.Overwriting))
             metadata.Item.CollectionName = label;
 
-        if (genres != null && (metadata.Item.Genres.Length == 0 || IScraper.Overwriting))
+        if (genres != null && (metadata.Item.Genres.Length == 0 || IScraper.Overwriting) && !EngTags)
             foreach (var genre in genres)
                 if (!metadata.Item.Genres.Contains(genre))
                     metadata.Item.AddGenre(genre);
@@ -251,15 +246,22 @@ public class JavlibraryScraper : IScraper
 
         var titleEn = docEn.Body.SelectSingleNode("//div[@id='video_title']/*/a").Text();
         titleEn = titleEn.Replace(globalId ?? "", "").Trim();
+        var genres = docEn.Body.SelectNodes("//span[@class='genre']")?.ToList()
+            .ConvertAll(input => input.Text().Trim()).ToArray();
         var director = docEn.Body.SelectSingleNode("//span[@class='director']/a")?.Text().Trim();
         var castEn = docEn.Body.SelectNodes("//span[@class='cast']/span[@class='star']")?.Where(node =>
             !string.IsNullOrWhiteSpace(node.Text())).ToList().ConvertAll(input => input.Text().Trim());
 
         if (!string.IsNullOrEmpty(titleEn) &&
-            (string.IsNullOrWhiteSpace(metadata.Item.OriginalTitle) || IScraper.Overwriting) && GetEngTitles)
+            (string.IsNullOrWhiteSpace(metadata.Item.OriginalTitle) || IScraper.Overwriting) && EngTitles)
             metadata.Item.OriginalTitle = titleEn;
+        
+        if (genres != null && (metadata.Item.Genres.Length == 0 || IScraper.Overwriting) && EngTags)
+            foreach (var genre in genres)
+                if (!metadata.Item.Genres.Contains(genre))
+                    metadata.Item.AddGenre(genre);
 
-        if (!GetEngCastNames) return;
+        if (!EngCastNames) return;
 
         if (!string.IsNullOrWhiteSpace(director))
         {
