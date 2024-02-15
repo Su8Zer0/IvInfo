@@ -11,6 +11,14 @@
         <div class="content-primary">
             <form class="configForm">
                 <fieldset>
+                    <legend>Global configuration</legend>
+                    <label class="checkboxContainer">
+                        <input id="firstOnly" is="emby-checkbox" type="checkbox"/>
+                        <span>Pick first result for multiple results found</span>
+                    </label>
+                </fieldset>
+                <br/>
+                <fieldset>
                     <legend>Enabled scrapers</legend>
                     <label class="checkboxContainer">
                         <input id="javlibrary" is="emby-checkbox" type="checkbox"/>
@@ -20,12 +28,33 @@
                         <input id="dmm" is="emby-checkbox" type="checkbox"/>
                         <span>DMM scraper</span>
                     </label>
+                    <div id="dmm_proxy_container" style="padding-left: 1em;">
+                        <label class="checkboxContainer">
+                            <input id="dmm_proxy" is="emby-checkbox" type="checkbox"/>
+                            <span>Use proxy for DMM scraper</span>
+                        </label>
+                    </div>
                     <label class="checkboxContainer">
                         <input id="gekiyasu" is="emby-checkbox" type="checkbox"/>
                         <span>Gekiyasu scraper</span>
                     </label>
                 </fieldset>
                 <br/>
+                <fieldset>
+                    <legend>Enabled image providers</legend>
+                    <label class="checkboxContainer">
+                        <input id="javlibrary_img" is="emby-checkbox" type="checkbox"/>
+                        <span>Javlibrary</span>
+                    </label>
+                    <label class="checkboxContainer">
+                        <input id="dmm_img" is="emby-checkbox" type="checkbox"/>
+                        <span>DMM</span>
+                    </label>
+                    <label class="checkboxContainer">
+                        <input id="gekiyasu_img" is="emby-checkbox" type="checkbox"/>
+                        <span>Gekiyasu</span>
+                    </label>
+                </fieldset>
                 <div>
                     <button class="raised button-submit block" is="emby-button" type="submit"><span>Save</span></button>
                 </div>
@@ -33,19 +62,34 @@
         </div>
     </div>
     <script type="text/javascript">
-            var PluginConfig = {
-                pluginId: "abe0c619-a145-4890-896b-cb1089ade4fe"
-            };
+        var PluginConfig = {
+            pluginId: "abe0c619-a145-4890-896b-cb1089ade4fe"
+        };
 
-            document.querySelector('.configPage')
-                .addEventListener('pageshow', function (e) {
-                    Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(PluginConfig.pluginId).then(function (config) {
-                        document.querySelector('#javlibrary').checked = config.JavlibraryScraperEnabled;
-                        document.querySelector('#dmm').checked = config.DmmScraperEnabled;
-                        document.querySelector('#gekiyasu').checked = config.GekiyasuScraperEnabled;
-                        Dashboard.hideLoadingMsg();
-                    });
+        document.querySelector('#dmm')
+            .addEventListener('click', function (e) {
+                const enabled = document.querySelector("#dmm").checked;
+                const cb = document.querySelector('#dmm_proxy');
+                const div = document.querySelector('#dmm_proxy_container');
+                cb.checked = enabled;
+                cb.disabled = !enabled;
+                div.classList.toggle('hide', cb.disabled);
+            });
+
+        document.querySelector('.configPage')
+            .addEventListener('pageshow', function (e) {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(PluginConfig.pluginId).then(function (config) {
+                    document.querySelector('#firstOnly').checked = config.FirstOnly;
+                    document.querySelector('#javlibrary').checked = config.JavlibraryScraperEnabled;
+                    document.querySelector('#dmm').checked = config.DmmScraperEnabled;
+                    document.querySelector('#gekiyasu').checked = config.GekiyasuScraperEnabled;
+                    document.querySelector('#javlibrary_img').checked = config.JavlibraryImgEnabled;
+                    document.querySelector('#dmm_img').checked = config.DmmImgEnabled;
+                    document.querySelector('#gekiyasu_img').checked = config.GekiyasuImgEnabled;
+                    document.querySelector('#dmm_proxy').checked = config.DmmUseProxy;
+                    Dashboard.hideLoadingMsg();
+                });
                 });
 
             
@@ -53,15 +97,21 @@
                 .addEventListener('submit', function (e) {
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(PluginConfig.pluginId).then(function (config) {
+                        config.FirstOnly = document.querySelector('#firstOnly').checked;
                         config.JavlibraryScraperEnabled = document.querySelector('#javlibrary').checked;
                         config.DmmScraperEnabled = document.querySelector('#dmm').checked;
                         config.GekiyasuScraperEnabled = document.querySelector('#gekiyasu').checked;
+                        config.JavlibraryImgEnabled = document.querySelector('#javlibrary_img').checked;
+                        config.DmmImgEnabled = document.querySelector('#dmm_img').checked;
+                        config.GekiyasuImgEnabled = document.querySelector('#gekiyasu_img').checked;
+                        config.DmmUseProxy = document.querySelector('#dmm_proxy').checked;
                         ApiClient.updatePluginConfiguration(PluginConfig.pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                     });
                     
                     e.preventDefault();
                     return false;
-                });    
+                });
+
     </script>
 </div>
 </body>

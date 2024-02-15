@@ -19,7 +19,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
     // ReSharper disable once UnusedType.Global
     public class JavlibraryScraper : IScraper
     {
-        public const string Name = nameof(JavlibraryScraper);
+        private const string Name = nameof(JavlibraryScraper);
 
         private const string DomainUrlEn = "https://www.javlibrary.com/en/";
         private const string DomainUrlJa = "https://www.javlibrary.com/ja/";
@@ -28,6 +28,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         private const string BaseUrlEn = DomainUrlEn + SearchUrl;
         private const string NoResults = "Search returned no result";
         private const string MultipleResults = "ID Search Result";
+        private const string Selector = "";
 
         private readonly ILogger _logger;
 
@@ -36,97 +37,48 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             _logger = logger;
         }
 
+        private static bool FirstOnly => IvInfo.Instance?.Configuration.FirstOnly ?? false;
+
         public int Priority => 3;
 
         public bool Enabled => IvInfo.Instance?.Configuration.JavlibraryScraperEnabled ?? false;
+        public bool ImgEnabled => IvInfo.Instance?.Configuration.JavlibraryImgEnabled ?? false;
 
         public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
             MovieInfo info, CancellationToken cancellationToken)
         {
-            var localResultList = new List<RemoteSearchResult>(resultList);
             var globalId = info.GetProviderId(IvInfoConstants.Name) ?? IvInfoProvider.GetId(info);
             _logger.LogDebug("{Name}: searching for id: {Id}", Name, globalId);
-            if (string.IsNullOrEmpty(globalId)) return localResultList;
+            if (string.IsNullOrEmpty(globalId)) return resultList;
 
-            var (multiple, doc) = await GetSearchResultsOrResultPage(globalId, cancellationToken);
-            if (string.IsNullOrEmpty(doc.Text)) return localResultList;
-
-            if (multiple)
-            {
-                var nodeCollection = doc.DocumentNode.SelectNodes("//div[@class='videos']/div[@class='video']/a");
-                foreach (var node in nodeCollection)
-                {
-                    var scraperId = node.GetAttributeValue("href", "").Split("=")[1];
-                    var foundGlobalId = node.FirstChild.FirstChild.InnerText;
-                    var title = node.LastChild.InnerText.Replace(globalId, "").Trim();
-                    var imgUrl = node.ChildNodes.FindFirst("img").GetAttributeValue("src", "");
-                    var dmmId = imgUrl.Split("/").Last().Replace("ps.jpg", "");
-                    var result = localResultList.Find(r => r.ProviderIds[IvInfoConstants.Name].Equals(foundGlobalId));
-                    if (result == null)
-                    {
-                        result = new RemoteSearchResult
-                        {
-                            Name = title,
-                            ImageUrl = imgUrl,
-                            SearchProviderName = Name,
-                            Overview = $"{foundGlobalId}<br />{title}",
-                            AlbumArtist = new RemoteSearchResult { Name = foundGlobalId }
-                        };
-                        result.SetProviderId(IvInfoConstants.Name, foundGlobalId);
-                        localResultList.Add(result);
-                    }
-
-                    result.SetProviderId(Name, scraperId);
-                    result.SetProviderId(DmmScraper.Name, dmmId);
-                }
-            }
-            else
-            {
-                var scraperId = GetScraperId(doc);
-                var title = doc.DocumentNode.SelectSingleNode("//div[@id='video_title']/*/a").InnerText
-                    .Replace(globalId, "").Trim();
-                var imgUrl = doc.DocumentNode.SelectSingleNode("//img[@id='video_jacket_img']")
-                    .GetAttributeValue("src", null).Replace("pl.jpg", "ps.jpg");
-                var dmmId = imgUrl.Split("/").Last().Replace("ps.jpg", "");
-                var result = localResultList.Find(r => r.ProviderIds[IvInfoConstants.Name].Equals(globalId));
-                if (result == null)
-                {
-                    result = new RemoteSearchResult
-                    {
-                        Name = title,
-                        ImageUrl = imgUrl,
-                        SearchProviderName = Name,
-                        Overview = $"{globalId}<br />{title}",
-                        AlbumArtist = new RemoteSearchResult { Name = globalId }
-                    };
-                    result.SetProviderId(IvInfoConstants.Name, globalId);
-                    localResultList.Add(result);
-                }
-
-                result.SetProviderId(Name, scraperId);
-                result.SetProviderId(DmmScraper.Name, dmmId);
-            }
-
-            return localResultList;
+            return await GetSearchResults(resultList, globalId, cancellationToken, FirstOnly);
         }
 
         public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, CancellationToken cancellationToken,
             bool overwrite = false)
         {
             var scraperId = metadata.Item.GetProviderId(Name);
-            var globalId = IvInfoProvider.GetId(metadata.Item.GetLookupInfo());
+            var globalId = metadata.Item.GetProviderId(IvInfoConstants.Name) ??
+                           IvInfoProvider.GetId(metadata.Item.GetLookupInfo());
             _logger.LogDebug("{Name}: searching for ids: {GlobalId}, {ScraperId}", Name, globalId, scraperId);
 
             HtmlDocument doc;
             if (scraperId == null)
             {
                 _logger.LogDebug("{Name}: no scraperid, searching for globalid: {Id}", Name, globalId);
-                (var multi, doc) = await GetSearchResultsOrResultPage(globalId, cancellationToken);
-                if (multi)
+                var results = new List<RemoteSearchResult>();
+                results = await GetSearchResults(results, globalId, cancellationToken);
+                if (results.Count > 1 && !FirstOnly)
                 {
-                    _logger.LogDebug("{Name}: multiple results, need to identify manually", Name);
+                    _logger.LogDebug("{Name}: multiple results found and selecting first result not enabled - aborting",
+                        Name);
                     return false;
                 }
+
+                var result = results.FirstOrDefault();
+                scraperId = result?.GetProviderId(Name);
+                if (string.IsNullOrEmpty(scraperId)) return false;
+                doc = await GetSingleResult(scraperId, cancellationToken);
             }
             else
             {
@@ -162,26 +114,32 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
                 .ConvertAll(input => input.InnerText.Trim());
             var genres = doc.DocumentNode.SelectNodes("//span[@class='genre']")?.ToList()
                 .ConvertAll(input => input.InnerText.Trim()).ToArray();
-            var label = doc.DocumentNode.SelectSingleNode("//span[@class='label']/a")?.InnerText?.Trim();
-            var maker = doc.DocumentNode.SelectSingleNode("//span[@class='maker']/a")?.InnerText?.Trim();
-            var director = doc.DocumentNode.SelectSingleNode("//span[@class='director']/a")?.InnerText?.Trim();
+            var label = docJa.DocumentNode?.SelectSingleNode("//span[@class='label']/a")?.InnerText?.Trim();
+            var maker = docJa.DocumentNode?.SelectSingleNode("//span[@class='maker']/a")?.InnerText?.Trim();
+            var director = docJa.DocumentNode?.SelectSingleNode("//span[@class='director']/a")?.InnerText?.Trim();
             var scoreText = doc.DocumentNode.SelectSingleNode("//span[@class='score']")?.InnerText?.Replace("(", "")
                 .Replace(")", "");
             var score = string.IsNullOrWhiteSpace(scoreText)
                 ? -1
                 : float.Parse(scoreText, CultureInfo.InvariantCulture.NumberFormat);
 
-            if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.Name)) metadata.Item.Name = title;
-            if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.OriginalTitle))
-                metadata.Item.OriginalTitle = titleJa;
+            if (!string.IsNullOrEmpty(titleJa) && (overwrite || string.IsNullOrWhiteSpace(metadata.Item.Name)))
+                metadata.Item.Name = titleJa;
+            if (!string.IsNullOrEmpty(title) && (overwrite || string.IsNullOrWhiteSpace(metadata.Item.OriginalTitle)))
+                metadata.Item.OriginalTitle = title;
             if (overwrite || metadata.Item.PremiereDate == null) metadata.Item.PremiereDate = releaseDate;
             if (overwrite || metadata.Item.ProductionYear == null) metadata.Item.ProductionYear = releaseDate.Year;
-            if (overwrite || metadata.Item.CommunityRating == null)
-                metadata.Item.CommunityRating = score > -1 ? score : null;
+            if (score > -1 && (overwrite || metadata.Item.CommunityRating == null))
+                metadata.Item.CommunityRating = score;
             if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.OfficialRating))
                 metadata.Item.OfficialRating = "R";
-            if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.ExternalId)) metadata.Item.ExternalId = globalId;
-            if (overwrite || metadata.Item.Studios.Length == 0) metadata.Item.AddStudio(label ?? maker);
+            if (overwrite || string.IsNullOrWhiteSpace(metadata.Item.ExternalId)) metadata.Item.ExternalId = scraperId;
+            if (!string.IsNullOrEmpty(label) && (overwrite || !metadata.Item.Studios.Contains(label)))
+                metadata.Item.AddStudio(label);
+            if (!string.IsNullOrEmpty(maker) && (overwrite || !metadata.Item.Studios.Contains(maker)))
+                metadata.Item.AddStudio(maker);
+            if (!string.IsNullOrEmpty(label) && (overwrite || string.IsNullOrEmpty(metadata.Item.CollectionName)))
+                metadata.Item.CollectionName = label;
 
             if (genres != null && (overwrite || metadata.Item.Genres.Length == 0))
                 foreach (var genre in genres)
@@ -189,32 +147,32 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
             if (!overwrite && metadata.People != null) return true;
 
-            if (!string.IsNullOrWhiteSpace(director))
+            if (!string.IsNullOrWhiteSpace(director) && (overwrite || metadata.People == null ||
+                                                         !metadata.People.Exists(p => p.Name == director)))
+            {
                 metadata.AddPerson(new PersonInfo
                 {
                     Name = director,
                     Type = PersonType.Director
                 });
-
-            if (cast == null) return true;
-            {
-                foreach (var person in cast)
-                    metadata.AddPerson(new PersonInfo
-                    {
-                        Name = castJa != null && cast.IndexOf(person) > -1 ? castJa[cast.IndexOf(person)] : "",
-                        Role = person,
-                        Type = PersonType.Actor
-                    });
             }
 
-            var dmmId = doc.DocumentNode.SelectSingleNode("//img[@id='video_jacket_img']")
-                .GetAttributeValue("src", null).Split("/").Last().Replace("pl.jpg", "");
+            if (castJa == null) return true;
+
+            foreach (var person in castJa)
+            {
+                metadata.AddPerson(new PersonInfo
+                {
+                    Name = person,
+                    Role = cast != null && castJa.IndexOf(person) > -1 ? cast[castJa.IndexOf(person)] : "",
+                    Type = PersonType.Actor
+                });
+            }
 
             metadata.Item.SetProviderId(Name, scraperId);
-            metadata.Item.SetProviderId(DmmScraper.Name, dmmId);
             metadata.Item.SetProviderId(IvInfoConstants.Name, globalId);
 
-            _logger.LogDebug("{Name}: searching finished", Name);
+            _logger.LogDebug("{Name}: metadata fetching finished", Name);
             return true;
         }
 
@@ -256,6 +214,71 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             yield return ImageType.Box;
         }
 
+        private async Task<List<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
+            string globalId,
+            CancellationToken cancellationToken, bool firstOnly = false)
+        {
+            var localResultList = new List<RemoteSearchResult>(resultList);
+            var (multiple, doc) = await GetSearchResultsOrResultPage(globalId, cancellationToken);
+            if (string.IsNullOrEmpty(doc.Text)) return localResultList;
+
+            if (multiple)
+            {
+                var nodeCollection = doc.DocumentNode.SelectNodes("//div[@class='videos']/div[@class='video']/a");
+                foreach (var node in nodeCollection)
+                {
+                    var scraperId = node.GetAttributeValue("href", "").Split("=")[1];
+                    var foundGlobalId = node.FirstChild.FirstChild.InnerText;
+                    var title = node.LastChild.InnerText.Replace(globalId, "").Trim();
+                    var imgUrl = node.ChildNodes.FindFirst("img").GetAttributeValue("src", "");
+                    var result = localResultList.Find(r => r.ProviderIds[IvInfoConstants.Name].Equals(foundGlobalId));
+                    if (result == null)
+                    {
+                        result = new RemoteSearchResult
+                        {
+                            Name = title,
+                            ImageUrl = imgUrl,
+                            SearchProviderName = Name,
+                            Overview = $"{foundGlobalId}<br />{title}",
+                            AlbumArtist = new RemoteSearchResult { Name = $"{Name}: {scraperId}/{globalId}" }
+                        };
+                        result.SetProviderId(IvInfoConstants.Name, foundGlobalId);
+                        localResultList.Add(result);
+                    }
+
+                    result.SetProviderId(Name, scraperId);
+
+                    if (firstOnly) break;
+                }
+            }
+            else
+            {
+                var scraperId = GetScraperId(doc);
+                var title = doc.DocumentNode.SelectSingleNode("//div[@id='video_title']/*/a").InnerText
+                    .Replace(globalId, "").Trim();
+                var imgUrl = doc.DocumentNode.SelectSingleNode("//img[@id='video_jacket_img']")
+                    .GetAttributeValue("src", null).Replace("pl.jpg", "ps.jpg");
+                var result = localResultList.Find(r => r.ProviderIds[IvInfoConstants.Name].Equals(globalId));
+                if (result == null)
+                {
+                    result = new RemoteSearchResult
+                    {
+                        Name = title,
+                        ImageUrl = imgUrl,
+                        SearchProviderName = Name,
+                        Overview = $"{globalId}<br />{title}",
+                        AlbumArtist = new RemoteSearchResult { Name = $"{Name}: {scraperId}/{globalId}" }
+                    };
+                    result.SetProviderId(IvInfoConstants.Name, globalId);
+                    localResultList.Add(result);
+                }
+
+                result.SetProviderId(Name, scraperId);
+            }
+
+            return localResultList;
+        }
+
         /// <summary>
         ///     Returns true and page with search results if there were multiple results for this global id.
         ///     When there were only one result returns false and result page. If nothing was found returns false and empty page.
@@ -294,6 +317,13 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             if (string.IsNullOrEmpty(html)) return doc;
             doc.LoadHtml(html);
             return doc;
+        }
+
+        private static string GetFirstResultId(HtmlDocument doc)
+        {
+            return string.IsNullOrEmpty(doc.Text)
+                ? string.Empty
+                : doc.DocumentNode.SelectSingleNode(Selector).GetAttributeValue("href", "").Trim('/');
         }
 
         private string GetScraperId(HtmlDocument doc)
