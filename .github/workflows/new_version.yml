@@ -31,9 +31,6 @@ jobs:
       REPO_URL: https://subzeropl.mywire.org
       PROJECT_NAME: IvInfo
     steps:
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
     - name: Checkout
       uses: actions/checkout@v3
     - name: Setup .NET
@@ -99,4 +96,8 @@ jobs:
     - name: Post release to repo
       run: curl -F plugin_name=IvInfo -F zip_file=@repo/ivinfo_${{ steps.get_version.outputs.version }}.zip -F manifest_file=@repo/manifest.json $REPO_URL/jf-plugin-repo/release.php
       shell: sh
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      timeout-minutes: 15
+      if: ${{ failure() && github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
     # TODO add modified manifest to repo
