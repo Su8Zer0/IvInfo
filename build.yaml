@@ -8,11 +8,10 @@ overview: "Idol video info metadata provider. Uses data from javlibrary.com, dmm
 description: >
   Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp. 
   Fetches video metadata and cover/box/screenshot images. 
-  DMM scraper has to be run from japanese IP otherwise it will not find most of the videos.
 
 category: "Metadata"
 artifacts:
-  - "Jellyfin.Plugin.IvInfo.dll"
+  - "IvInfo.dll"
   - "F23.StringSimilarity.dll"
   - "AngleSharp.dll"
   - "AngleSharp.XPath.dll"
