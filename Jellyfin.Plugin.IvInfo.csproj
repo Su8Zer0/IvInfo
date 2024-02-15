@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <PackageVersion>0.1.2</PackageVersion>
-    <AssemblyVersion>0.1.2</AssemblyVersion>
-    <FileVersion>0.1.2.0</FileVersion>
+    <PackageVersion>1.0.0.0</PackageVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
     <Nullable>enable</Nullable>
     <Authors>SubZero</Authors>
-    <OutputType>Exe</OutputType>
+    <PackageProjectUrl>https://github.com/SubZeroPL/Jellyfin.Plugin.IvInfo</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
