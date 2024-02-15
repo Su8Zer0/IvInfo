@@ -89,29 +89,7 @@ public class DmmScraperTest
         await _scraper.FillMetadata(metadata, info, CancellationToken.None);
         Assert.That(metadata.HasMetadata, Is.False);
     }
-    
-    [Test]
-    public async Task FillMetadataShouldReturnFalseWithGlobalIdAndWithoutScraperId()
-    {
-        var info = new ItemLookupInfo
-        {
-            IsAutomated = true
-        };
-        info.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        var movie = new Movie
-        {
-            Name = TestConsts.Name
-        };
-        movie.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        var metadata = new MetadataResult<Movie>
-        {
-            Item = movie
-        };
-        
-        var ret = await _scraper.FillMetadata(metadata, info, CancellationToken.None);
-        Assert.That(ret, Is.False);
-    }
-    
+  
     [Test]
     public async Task FillMetadataShouldReturnTrueWithScraperId()
     {

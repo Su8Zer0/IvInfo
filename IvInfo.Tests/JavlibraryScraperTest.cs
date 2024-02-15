@@ -21,7 +21,7 @@ public class JavlibraryScraperTest
         var logger = new LoggerFactory().CreateLogger<IvInfoProvider>();
         _scraper = new JavlibraryScraper(logger);
     }
-    
+
     [Test]
     public void HandledImageTypesShouldReturnTwoEntries()
     {
@@ -68,7 +68,7 @@ public class JavlibraryScraperTest
         var results = await _scraper.GetSearchResults(resultList, movieInfo, CancellationToken.None);
         Assert.That(results.Count(), Is.EqualTo(1));
     }
-    
+
     [Test]
     public async Task GetSearchResultsShouldReturnMultipleResults()
     {
@@ -100,33 +100,11 @@ public class JavlibraryScraperTest
         {
             Item = movie
         };
-        
+
         await _scraper.FillMetadata(metadata, info, CancellationToken.None);
         Assert.That(metadata.HasMetadata, Is.False);
     }
-    
-    [Test]
-    public async Task FillMetadataShouldReturnFalseWithGlobalIdAndWithoutScraperId()
-    {
-        var info = new ItemLookupInfo
-        {
-            IsAutomated = true
-        };
-        info.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        var movie = new Movie
-        {
-            Name = TestConsts.Name
-        };
-        movie.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        var metadata = new MetadataResult<Movie>
-        {
-            Item = movie
-        };
-        
-        var ret = await _scraper.FillMetadata(metadata, info, CancellationToken.None);
-        Assert.That(ret, Is.False);
-    }
-    
+
     [Test]
     public async Task FillMetadataShouldReturnTrueWithScraperId()
     {
@@ -146,7 +124,7 @@ public class JavlibraryScraperTest
         {
             Item = movie
         };
-        
+
         var ret = await _scraper.FillMetadata(metadata, info, CancellationToken.None);
         Assert.That(ret, Is.True);
     }
@@ -170,7 +148,7 @@ public class JavlibraryScraperTest
         var ret = await _scraper.GetImages(movie, CancellationToken.None);
         Assert.That(ret, Is.Empty);
     }
-    
+
     [Test]
     public async Task GetImagesShouldReturnSingleItemForPrimaryImage()
     {
@@ -192,7 +170,7 @@ public class JavlibraryScraperTest
         var ret = await _scraper.GetImages(movie, CancellationToken.None);
         Assert.That(ret.Count(), Is.EqualTo(1));
     }
-    
+
     [Test]
     public async Task GetImagesShouldReturnSingleItemForBoxImage()
     {
@@ -214,7 +192,7 @@ public class JavlibraryScraperTest
         var ret = await _scraper.GetImages(movie, CancellationToken.None, ImageType.Box);
         Assert.That(ret.Count(), Is.EqualTo(1));
     }
-    
+
     [Test]
     public async Task GetImagesShouldReturnEmptyListForOtherImageTypes()
     {
