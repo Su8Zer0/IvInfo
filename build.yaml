@@ -1,6 +1,6 @@
 name: "IvInfo"
 guid: "abe0c619-a145-4890-896b-cb1089ade4fe"
-version: "0.1.7.0"
+version: "0.1.7.1"
 targetAbi: "10.8.0.0"
 framework: "net6.0"
 owner: "SubZeroPL"
@@ -18,7 +18,5 @@ artifacts:
   - "AngleSharp.dll"
   - "AngleSharp.XPath.dll"
 changelog: |
-  plugin configuration changes
-  scrapers remake
-  added unit tests
-  some code cleanups
+  added config option to enable trailers scraping (DmmScraper)
+  fix for multiple actors (DmmScraper)
