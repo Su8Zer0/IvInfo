@@ -33,18 +33,20 @@
                             <input id="javlibrary" is="emby-checkbox" type="checkbox"/>
                             <span>Scraper enabled</span>
                         </label>
-                        <label class="checkboxContainer">
-                            <input id="javlibrary_img" is="emby-checkbox" type="checkbox"/>
-                            <span>Scrape images</span>
-                        </label>
-                        <label class="checkboxContainer">
-                            <input id="javlibrary_titles" is="emby-checkbox" type="checkbox"/>
-                            <span>Fetch english translated title as original title</span>
-                        </label>
-                        <label class="checkboxContainer">
-                            <input id="javlibrary_cast" is="emby-checkbox" type="checkbox"/>
-                            <span>Fetch english translated cast names (saved as role name)</span>
-                        </label>
+                        <fieldset id="javlibrary_options">
+                            <label class="checkboxContainer">
+                                <input id="javlibrary_img" is="emby-checkbox" type="checkbox"/>
+                                <span>Scrape images</span>
+                            </label>
+                            <label class="checkboxContainer">
+                                <input id="javlibrary_titles" is="emby-checkbox" type="checkbox"/>
+                                <span>Fetch english translated title as original title</span>
+                            </label>
+                            <label class="checkboxContainer">
+                                <input id="javlibrary_cast" is="emby-checkbox" type="checkbox"/>
+                                <span>Fetch english translated cast names (saved as role name)</span>
+                            </label>
+                        </fieldset>
                     </fieldset>
                     <fieldset>
                         <legend>DMM scraper</legend>
@@ -52,14 +54,12 @@
                             <input id="dmm" is="emby-checkbox" type="checkbox"/>
                             <span>Scraper enabled</span>
                         </label>
-                        <label class="checkboxContainer">
-                            <input id="dmm_img" is="emby-checkbox" type="checkbox"/>
-                            <span>Scrape images</span>
-                        </label>
-                        <label class="checkboxContainer">
-                            <input id="dmm_proxy" is="emby-checkbox" type="checkbox"/>
-                            <span>Use proxy for DMM scraper</span>
-                        </label>
+                        <fieldset id="dmm_options">
+                            <label class="checkboxContainer">
+                                <input id="dmm_img" is="emby-checkbox" type="checkbox"/>
+                                <span>Scrape images</span>
+                            </label>
+                        </fieldset>
                     </fieldset>
                     <fieldset>
                         <legend>Gekiyasu scraper</legend>
@@ -67,14 +67,16 @@
                             <input id="gekiyasu" is="emby-checkbox" type="checkbox"/>
                             <span>Scraper enabled</span>
                         </label>
-                        <label class="checkboxContainer">
-                            <input id="gekiyasu_img" is="emby-checkbox" type="checkbox"/>
-                            <span>Scrape images</span>
-                        </label>
+                        <fieldset id="gekiyasu_options">
+                            <label class="checkboxContainer">
+                                <input id="gekiyasu_img" is="emby-checkbox" type="checkbox"/>
+                                <span>Scrape images</span>
+                            </label>
+                        </fieldset>
                     </fieldset>
                 </fieldset>
                 <br/>
-                <fieldset>
+                <fieldset id="scrapers_order">
                     <legend>Scrapers priority (top one is queried first)</legend>
                     <div class="paperList" id="priority">
                         <div class="listItem" data-id="javlib" data-value="1" id="prio_javlib">
