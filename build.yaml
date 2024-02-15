@@ -1,0 +1,16 @@
+---
+name: "IvInfo"
+guid: "abe0c619-a145-4890-896b-cb1089ade4fe"
+version: "1.0.0.0"
+targetAbi: "10.7.7.0"
+framework: "net5.0"
+owner: "SubZeroPL"
+overview: "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp"
+description: >
+  Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp
+
+category: "Metadata"
+artifacts:
+  - "Jellyfin.Plugin.IvInfo.dll"
+changelog: |-
+  Initial release
