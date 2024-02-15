@@ -9,6 +9,9 @@ using Microsoft.Extensions.Logging;
 
 namespace IvInfo.Tests;
 
+/**
+ * Tests in <c>GithubSkip</c> category will not be executed in Github action because Github actions hosts cannot connect to DMM pages.
+ */
 [TestFixture]
 [TestOf("DmmScraper")]
 public class DmmScraperTest
@@ -21,7 +24,7 @@ public class DmmScraperTest
         var logger = new LoggerFactory().CreateLogger<IvInfoProvider>();
         _scraper = new DmmScraper(logger);
     }
-    
+
     [Test]
     public void HandledImageTypesShouldReturnThreeEntries()
     {
@@ -38,7 +41,7 @@ public class DmmScraperTest
         Assert.That(types, Contains.Item(ImageType.Screenshot));
     }
 
-    [Test]
+    [Test, Category("GithubSkip")]
     public async Task GetSearchResultsShouldReturnNoResultsForWrongGlobalId()
     {
         var resultList = ImmutableList<RemoteSearchResult>.Empty;
@@ -54,7 +57,7 @@ public class DmmScraperTest
         Assert.That(results, Is.Empty);
     }
 
-    [Test]
+    [Test, Category("GithubSkip")]
     public async Task GetSearchResultsShouldReturnSingleResult()
     {
         var resultList = ImmutableList<RemoteSearchResult>.Empty;
@@ -70,7 +73,7 @@ public class DmmScraperTest
         Assert.That(results.Count(), Is.EqualTo(1));
     }
 
-    [Test]
+    [Test, Category("GithubSkip")]
     public async Task FillMetadataShouldReturnFalseWithoutIds()
     {
         var info = new ItemLookupInfo
@@ -85,12 +88,12 @@ public class DmmScraperTest
         {
             Item = movie
         };
-        
+
         await _scraper.FillMetadata(metadata, info, CancellationToken.None);
         Assert.That(metadata.HasMetadata, Is.False);
     }
-  
-    [Test]
+
+    [Test, Category("GithubSkip")]
     public async Task FillMetadataShouldReturnTrueWithScraperId()
     {
         var info = new ItemLookupInfo
@@ -109,12 +112,12 @@ public class DmmScraperTest
         {
             Item = movie
         };
-        
+
         var ret = await _scraper.FillMetadata(metadata, info, CancellationToken.None);
         Assert.That(ret, Is.True);
     }
 
-    [Test]
+    [Test, Category("GithubSkip")]
     public async Task GetImagesShouldReturnEmptyListForMissingScraperId()
     {
         var info = new ItemLookupInfo
@@ -133,8 +136,8 @@ public class DmmScraperTest
         var ret = await _scraper.GetImages(movie, CancellationToken.None);
         Assert.That(ret, Is.Empty);
     }
-    
-    [Test]
+
+    [Test, Category("GithubSkip")]
     public async Task GetImagesShouldReturnSingleItemForPrimaryImage()
     {
         var info = new ItemLookupInfo
@@ -155,8 +158,8 @@ public class DmmScraperTest
         var ret = await _scraper.GetImages(movie, CancellationToken.None);
         Assert.That(ret.Count(), Is.EqualTo(1));
     }
-    
-    [Test]
+
+    [Test, Category("GithubSkip")]
     public async Task GetImagesShouldReturnSingleItemForBoxImage()
     {
         var info = new ItemLookupInfo
@@ -177,8 +180,8 @@ public class DmmScraperTest
         var ret = await _scraper.GetImages(movie, CancellationToken.None, ImageType.Box);
         Assert.That(ret.Count(), Is.EqualTo(1));
     }
-    
-    [Test]
+
+    [Test, Category("GithubSkip")]
     public async Task GetImagesShouldReturnEmptyListForOtherImageTypes()
     {
         var info = new ItemLookupInfo
