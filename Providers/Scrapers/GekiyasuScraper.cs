@@ -32,7 +32,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         public int Priority => 4;
 
-        public bool Enabled => true;
+        public bool Enabled => IvInfo.Instance?.Configuration.GekiyasuScraperEnabled ?? false;
 
         public IEnumerable<RemoteSearchResult> GetSearchResults(MovieInfo info)
         {
@@ -45,7 +45,8 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             if (multiple)
             {
                 var nodeCollection =
-                    doc.DocumentNode.SelectNodes("//div[@class='b-list-area']/ul[@class='clearfix']/li");
+                    doc.DocumentNode.SelectNodes("//div[@class='b-list-area']/ul[@class='b-list clearfix']/li") ??
+                    new HtmlNodeCollection(null);
                 foreach (var node in nodeCollection)
                 {
                     var scraperId = node.ChildNodes.FindFirst("a").GetAttributeValue("href", "").Split("/").Last();
@@ -171,8 +172,8 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         }
 
         /// <summary>
-        /// Returns page with search results and true if there are multiple results or false if only one.
-        /// If nothing was found returns empty page and false.
+        ///     Returns page with search results and true if there are multiple results or false if only one.
+        ///     If nothing was found returns empty page and false.
         /// </summary>
         /// <param name="globalId">global id</param>
         /// <returns>bool, HtmlDocument pair</returns>
@@ -192,7 +193,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         }
 
         /// <summary>
-        /// Returns result page for specific scraper id or empty page if not found.
+        ///     Returns result page for specific scraper id or empty page if not found.
         /// </summary>
         /// <param name="scraperId">scraper id</param>
         /// <returns>page for id</returns>

@@ -36,7 +36,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
 
         public int Priority => 3;
 
-        public bool Enabled => true;
+        public bool Enabled => IvInfo.Instance?.Configuration.JavlibraryScraperEnabled ?? false;
 
         public IEnumerable<RemoteSearchResult> GetSearchResults(MovieInfo info)
         {
@@ -155,35 +155,27 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             if (overwrite || metadata.Item.Studios.Length == 0) metadata.Item.AddStudio(label ?? maker);
 
             if (genres != null && (overwrite || metadata.Item.Genres.Length == 0))
-            {
                 foreach (var genre in genres)
-                {
                     metadata.Item.AddGenre(genre);
-                }
-            }
 
             if (!overwrite && metadata.People != null) return true;
 
             if (!string.IsNullOrWhiteSpace(director))
-            {
                 metadata.AddPerson(new PersonInfo
                 {
                     Name = director,
                     Type = PersonType.Director
                 });
-            }
 
             if (cast == null) return true;
             {
                 foreach (var person in cast)
-                {
                     metadata.AddPerson(new PersonInfo
                     {
                         Name = castJa != null && cast.IndexOf(person) > -1 ? castJa[cast.IndexOf(person)] : "",
                         Role = person,
                         Type = PersonType.Actor
                     });
-                }
             }
 
             var dmmId = doc.DocumentNode.SelectSingleNode("//img[@id='video_jacket_img']")
@@ -212,10 +204,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
             var url = doc.DocumentNode?.SelectSingleNode("//img[@id='video_jacket_img']")
                 ?.GetAttributeValue("src", null);
             if (string.IsNullOrEmpty(url)) return result;
-            if (!url.StartsWith("http"))
-            {
-                url = "https:" + url;
-            }
+            if (!url.StartsWith("http")) url = "https:" + url;
 
             result = IScraper.AddOrOverwrite(result, imageType, url, overwrite);
 
@@ -228,8 +217,8 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         }
 
         /// <summary>
-        /// Returns true and page with search results if there were multiple results for this global id.
-        /// When there were only one result returns false and result page. If nothing was found returns false and empty page.
+        ///     Returns true and page with search results if there were multiple results for this global id.
+        ///     When there were only one result returns false and result page. If nothing was found returns false and empty page.
         /// </summary>
         /// <param name="globalId">global id</param>
         /// <returns>bool, HtmlDocument pair</returns>
@@ -248,7 +237,7 @@ namespace Jellyfin.Plugin.IvInfo.Providers.Scrapers
         }
 
         /// <summary>
-        /// Returns result page for specific scraper id or empty page if not found.
+        ///     Returns result page for specific scraper id or empty page if not found.
         /// </summary>
         /// <param name="scraperId">scraper id</param>
         /// <returns>page for id</returns>
