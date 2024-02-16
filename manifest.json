@@ -6,7 +6,16 @@
         "description": "Idol video info metadata provider.\nUses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp.\nFetches video metadata and cover/box/screenshot images.\nAlso fetches trailers from DMM.\n",
         "owner": "SubZeroPL",
         "overview": "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp",
+        "imageUrl": "https://raw.githubusercontent.com/Su8Zer0/IvInfo/master/logo.png",
         "versions": [
+            {
+                "version": "0.1.7.4",
+                "changelog": "added logo image\n",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://github.com/Su8Zer0/IvInfo/releases/download/v0.1.7.4/ivinfo_0.1.7.4.zip",
+                "checksum": "36d204c535f186bfec4b061fa34acb46",
+                "timestamp": "2024-02-16T10:22:15Z"
+            },
             {
                 "version": "0.1.7.3",
                 "changelog": "fix cast error (Dmm, Javlibrary)\nadded cast scraping (Gekiyasu)\n",
