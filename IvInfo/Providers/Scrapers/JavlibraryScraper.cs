@@ -109,9 +109,9 @@ public class JavlibraryScraper : IScraper
 
         scraperId = GetScraperId(docJp);
 
-        FillJpMetadata(metadata, docJp);
+        var castJp = FillJpMetadata(metadata, docJp);
 
-        if (EngTitles || EngCastNames || EngTags) await FillEnMetadata(metadata, scraperId, cancellationToken);
+        if (EngTitles || EngCastNames || EngTags) await FillEnMetadata(metadata, scraperId, castJp, cancellationToken);
 
         metadata.Item.SetProviderId(Name, scraperId);
 
@@ -166,7 +166,7 @@ public class JavlibraryScraper : IScraper
         yield return ImageType.Box;
     }
 
-    private void FillJpMetadata(MetadataResult<Movie> metadata, IDocument doc)
+    private List<string>? FillJpMetadata(MetadataResult<Movie> metadata, IDocument doc)
     {
         var globalId = metadata.Item.GetProviderId(IvInfoConstants.Name);
         var scraperId = GetScraperId(doc);
@@ -225,7 +225,7 @@ public class JavlibraryScraper : IScraper
             });
 
         if (castJp == null ||
-            (metadata.People != null && string.IsNullOrWhiteSpace(director) && !IScraper.Overwriting)) return;
+            (metadata.People != null && string.IsNullOrWhiteSpace(director) && !IScraper.Overwriting)) return null;
 
         foreach (var person in castJp.Where(person => !metadata.People?.Exists(p => p.Name == person) ?? true))
             metadata.AddPerson(new PersonInfo
@@ -233,9 +233,11 @@ public class JavlibraryScraper : IScraper
                 Name = person,
                 Type = PersonType.Actor
             });
+
+        return castJp;
     }
 
-    private async Task FillEnMetadata(MetadataResult<Movie> metadata, string scraperId,
+    private async Task FillEnMetadata(MetadataResult<Movie> metadata, string scraperId, IReadOnlyList<string>? castJp,
         CancellationToken cancellationToken)
     {
         var globalId = metadata.Item.GetProviderId(IvInfoConstants.Name);
@@ -255,7 +257,7 @@ public class JavlibraryScraper : IScraper
         if (!string.IsNullOrEmpty(titleEn) &&
             (string.IsNullOrWhiteSpace(metadata.Item.OriginalTitle) || IScraper.Overwriting) && EngTitles)
             metadata.Item.OriginalTitle = titleEn;
-        
+
         if (genres != null && (metadata.Item.Genres.Length == 0 || IScraper.Overwriting) && EngTags)
             foreach (var genre in genres)
                 if (!metadata.Item.Genres.Contains(genre))
@@ -269,15 +271,13 @@ public class JavlibraryScraper : IScraper
             if (dir != null) dir.Role = director;
         }
 
-        if (castEn == null) return;
-        if (!string.IsNullOrWhiteSpace(director))
-            castEn.Insert(0, director);
-
-        var castJp = metadata.People;
-        if (castJp == null) return;
+        if (castEn == null || castJp == null) return;
         for (var i = 0; i < castJp.Count; i++)
-            if (metadata.People[i].Type == PersonType.Actor)
-                metadata.People[i].Role = castEn[i];
+        {
+            var person = metadata.People.First(p => p.Name == castJp[i]);
+            if (person is { Type: PersonType.Actor })
+                person.Role = castEn[i];
+        }
     }
 
     private async Task<List<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,

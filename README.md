@@ -20,3 +20,5 @@ Also fetches trailers from DMM (trailer feature currently is unusable because th
 To use the plugin in Jellyfin add a new repository with URL:  
 https://raw.githubusercontent.com/Su8Zer0/IvInfo/master/manifest.json  
 and then install plugin from Catalogue &#8594; Metadata.
+
+Search is based on dics/video ID (something like REBD-234) so the file should have this id somewhere in filename.
