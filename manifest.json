@@ -9,6 +9,14 @@
         "imageUrl": "https://raw.githubusercontent.com/Su8Zer0/IvInfo/master/logo.png",
         "versions": [
             {
+                "version": "0.1.7.5",
+                "changelog": "fixed english cast and director scraping\n",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://github.com/Su8Zer0/IvInfo/releases/download/v0.1.7.5/ivinfo_0.1.7.5.zip",
+                "checksum": "bf992ed8a4a7a99d5a9522bfb53a9eb5",
+                "timestamp": "2024-02-28T10:37:45Z"
+            },
+            {
                 "version": "0.1.7.4",
                 "changelog": "added logo image\n",
                 "targetAbi": "10.8.0.0",
