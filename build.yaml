@@ -1,7 +1,7 @@
 name: "IvInfo"
 guid: "abe0c619-a145-4890-896b-cb1089ade4fe"
 imageUrl: "https://raw.githubusercontent.com/Su8Zer0/IvInfo/master/logo.png"
-version: "0.1.7.4"
+version: "0.1.7.5"
 targetAbi: "10.8.0.0"
 framework: "net6.0"
 owner: "SubZeroPL"
@@ -19,4 +19,4 @@ artifacts:
   - "AngleSharp.dll"
   - "AngleSharp.XPath.dll"
 changelog: |
-  added logo image
+  fixed english cast and director scraping
