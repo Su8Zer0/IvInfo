@@ -10,6 +10,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using AngleSharp.XPath;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
@@ -48,7 +49,7 @@ public class JavlibraryScraper : IScraper
 
     public bool Enabled => IvInfo.Instance?.Configuration.JavlibraryScraperEnabled ?? false;
     public bool ImgEnabled => IvInfo.Instance?.Configuration.JavlibraryImgEnabled ?? false;
-    public int Priority => IvInfo.Instance?.Configuration.JavLibraryScraperPriority ?? 2;
+    public int Priority => IvInfo.Instance?.Configuration.JavLibraryScraperPriority ?? 3;
 
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
         MovieInfo info, CancellationToken cancellationToken)
@@ -221,7 +222,7 @@ public class JavlibraryScraper : IScraper
             metadata.AddPerson(new PersonInfo
             {
                 Name = director,
-                Type = PersonType.Director
+                Type = PersonKind.Director
             });
 
         if (castJp == null ||
@@ -231,7 +232,7 @@ public class JavlibraryScraper : IScraper
             metadata.AddPerson(new PersonInfo
             {
                 Name = person,
-                Type = PersonType.Actor
+                Type = PersonKind.Actor
             });
 
         return castJp;
@@ -267,7 +268,7 @@ public class JavlibraryScraper : IScraper
 
         if (!string.IsNullOrWhiteSpace(director))
         {
-            var dir = metadata.People.First(p => p.Type == PersonType.Director);
+            var dir = metadata.People.First(p => p.Type == PersonKind.Director);
             if (dir != null) dir.Role = director;
         }
 
@@ -275,7 +276,7 @@ public class JavlibraryScraper : IScraper
         for (var i = 0; i < castJp.Count; i++)
         {
             var person = metadata.People.First(p => p.Name == castJp[i]);
-            if (person is { Type: PersonType.Actor })
+            if (person is { Type: PersonKind.Actor })
                 person.Role = castEn[i];
         }
     }

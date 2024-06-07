@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
-        <PackageVersion>0.1.7.5</PackageVersion>
-        <AssemblyVersion>0.1.7.5</AssemblyVersion>
-        <FileVersion>0.1.7.5</FileVersion>
+        <TargetFramework>net8.0</TargetFramework>
+        <PackageVersion>0.1.8.0</PackageVersion>
+        <AssemblyVersion>0.1.8.0</AssemblyVersion>
+        <FileVersion>0.1.8.0</FileVersion>
         <Nullable>enable</Nullable>
         <Authors>Su8Zer0</Authors>
         <PackageProjectUrl>https://github.com/Su8Zer0/IvInfo</PackageProjectUrl>
-        <LangVersion>10</LangVersion>
+        <LangVersion>12</LangVersion>
         <UserSecretsId>c3f0a03b-a799-4f5f-ad9b-c0eb9135e8cf</UserSecretsId>
         <OutputType>Library</OutputType>
         <Title>IvInfo</Title>
@@ -17,11 +17,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AngleSharp" Version="1.1.0"/>
-        <PackageReference Include="AngleSharp.XPath" Version="2.0.3"/>
-        <PackageReference Include="Jellyfin.Controller" Version="10.8.13"/>
-        <PackageReference Include="Jellyfin.Model" Version="10.8.13"/>
-        <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0"/>
+        <PackageReference Include="AngleSharp" Version="1.1.2" />
+        <PackageReference Include="AngleSharp.XPath" Version="2.0.4" />
+        <PackageReference Include="Jellyfin.Controller" Version="10.9.6" />
+        <PackageReference Include="Jellyfin.Model" Version="10.9.6" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
         <PackageReference Include="String.Similarity" Version="3.0.0"/>
     </ItemGroup>
 
