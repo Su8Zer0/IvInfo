@@ -16,7 +16,8 @@ public class ScraperTest
     {
         JavlibraryScraper,
         DmmScraper,
-        GekiyasuScraper
+        GekiyasuScraper,
+        R18DevScraper
     }
 
     private static readonly Dictionary<Scraper, IScraper> Scrapers = new();
@@ -33,12 +34,14 @@ public class ScraperTest
         Scrapers.Add(Scraper.JavlibraryScraper, new JavlibraryScraper(logger));
         Scrapers.Add(Scraper.DmmScraper, new DmmScraper(logger));
         Scrapers.Add(Scraper.GekiyasuScraper, new GekiyasuScraper(logger));
+        Scrapers.Add(Scraper.R18DevScraper, new R18DevScraper(logger));
     }
 
     [Test]
     [TestCase(Scraper.JavlibraryScraper, 2)]
     [TestCase(Scraper.DmmScraper, 3)]
     [TestCase(Scraper.GekiyasuScraper, 2)]
+    [TestCase(Scraper.R18DevScraper, 3)]
     public void HandledImageTypesShouldReturnXEntries(Scraper scraper, int entries)
     {
         var types = GetScraper(scraper).HandledImageTypes();
@@ -49,6 +52,7 @@ public class ScraperTest
     [TestCase(Scraper.JavlibraryScraper, new[] { ImageType.Primary, ImageType.Box })]
     [TestCase(Scraper.DmmScraper, new[] { ImageType.Primary, ImageType.Box, ImageType.Screenshot })]
     [TestCase(Scraper.GekiyasuScraper, new[] { ImageType.Primary, ImageType.Box })]
+    [TestCase(Scraper.R18DevScraper, new[] { ImageType.Primary, ImageType.Box, ImageType.Screenshot })]
     public void HandledImageTypesShouldReturnSpecificTypes(Scraper scraper, ImageType[] imageTypes)
     {
         var types = GetScraper(scraper).HandledImageTypes().ToList();
@@ -62,6 +66,7 @@ public class ScraperTest
     [TestCase(Scraper.JavlibraryScraper)]
     [TestCase(Scraper.DmmScraper), Category("GithubSkip")]
     [TestCase(Scraper.GekiyasuScraper)]
+    [TestCase(Scraper.R18DevScraper)]
     public async Task GetSearchResultsShouldReturnNoResultsForWrongGlobalId(Scraper scraper)
     {
         var resultList = ImmutableList<RemoteSearchResult>.Empty;
@@ -81,6 +86,7 @@ public class ScraperTest
     [TestCase(Scraper.JavlibraryScraper)]
     [TestCase(Scraper.DmmScraper), Category("GithubSkip")]
     [TestCase(Scraper.GekiyasuScraper)]
+    [TestCase(Scraper.R18DevScraper)]
     public async Task GetSearchResultsShouldReturnSingleResult(Scraper scraper)
     {
         var resultList = ImmutableList<RemoteSearchResult>.Empty;
