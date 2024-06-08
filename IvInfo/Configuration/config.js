@@ -3,7 +3,10 @@
 export default function (page) {
     const form = page.querySelector('#ivinfo-config-form');
 
+    form.querySelector("#scrapers_order").addEventListener("click", onSortableContainerClick);
+    
     page.addEventListener('viewshow', async function () {
+        console.log("Loading IvInfo Config");
         Dashboard.showLoadingMsg();
         const config = await ApiClient.getPluginConfiguration(PluginId);
 
@@ -33,6 +36,8 @@ export default function (page) {
         document.querySelector('#prio_dmm').setAttribute('data-value', config.DmmScraperPriority);
         document.querySelector('#prio_geki').setAttribute('data-value', config.GekiyasuScraperPriority);
         document.querySelector('#prio_r18dev').setAttribute('data-value', config.R18DevScraperPriority);
+        
+        sortList("#priority", form);
 
         const r18dev = document.querySelector('#r18dev');
         const r18dev_opts = document.querySelector("#r18dev_options");
@@ -61,8 +66,6 @@ export default function (page) {
             gekiyasu_opts.disabled = !document.querySelector('#gekiyasu').checked
         });
         gekiyasu_opts.disabled = !config.GekiyasuScraperEnabled;
-        
-        initSortableList(form, "scrapers_order", config.TitleMainOrder);
 
         Dashboard.hideLoadingMsg();
     });
@@ -95,10 +98,10 @@ export default function (page) {
         config.GekiyasuScraperEnabled = document.querySelector('#gekiyasu').checked;
         config.GekiyasuImgEnabled = document.querySelector('#gekiyasu_img').checked;
         
-        config.R18DevScraperPriority = document.querySelector('#prio_r18dev').getAttribute('data-value');
-        config.JavLibraryScraperPriority = document.querySelector('#prio_javlib').getAttribute('data-value');
-        config.DmmScraperPriority = document.querySelector('#prio_dmm').getAttribute('data-value');
-        config.GekiyasuScraperPriority = document.querySelector('#prio_geki').getAttribute('data-value');
+        config.R18DevScraperPriority = document.querySelector('#prio_r18dev').getAttribute('data-priority');
+        config.JavLibraryScraperPriority = document.querySelector('#prio_javlib').getAttribute('data-priority');
+        config.DmmScraperPriority = document.querySelector('#prio_dmm').getAttribute('data-priority');
+        config.GekiyasuScraperPriority = document.querySelector('#prio_geki').getAttribute('data-priority');
 
         const result = await ApiClient.updatePluginConfiguration(PluginId, config);
         Dashboard.processPluginConfigurationUpdateResult(result);
@@ -107,12 +110,14 @@ export default function (page) {
     });
 };
 
-/**
- * 
- * @param {HTMLElement} element 
- * @param {number} index 
- */
+function sortList(list_id, parent) {
+    const list_container = parent.querySelector(list_id);
+    const list = Array.from(list_container.querySelectorAll(".listItem"))
+    list.sort((a, b) => a.dataset.value - b.dataset.value);    
+}
+
 function adjustSortableListElement(element, index) {
+    element.dataset.priority = index+1;
     const button = element.querySelector(".btnSortable");
     const icon = button.querySelector(".material-icons");
     if (index > 0) {
@@ -159,24 +164,5 @@ function onSortableContainerClick(event) {
         for (const option of list.querySelectorAll(".sortableOption")) {
             adjustSortableListElement(option, i++);
         }
-    }
-}
-
-function initSortableList(form, name, order) {
-    let index = 0;
-    const list = form.querySelector(`#${name}`);
-    const listItems = Array.from(list.querySelectorAll(".listItem"))
-        .map((item) => ({
-            item,
-            isSortable: item.className.includes("sortableOption"),
-        }));
-    list.innerHTML = "";
-    for (const option of order) {
-        const { item, isSortable } = listItems.find((item) => item.option === option) || {};
-        if (!item)
-            continue;
-        list.append(item);
-        if (isSortable)
-            adjustSortableListElement(item, index++);
     }
 }

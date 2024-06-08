@@ -9,7 +9,6 @@
      data-require="emby-input,emby-button,emby-checkbox"
      data-role="page"
      id="ivinfo-config">
-    <script src="https://SortableJS.github.io/Sortable/Sortable.js" type="module"></script>
     <div data-role="content">
         <div class="content-primary">
             <form class="configForm" id="ivinfo-config-form">
@@ -116,40 +115,40 @@
                 <fieldset id="scrapers_order">
                     <legend>Scrapers priority (top one is queried first)</legend>
                     <div class="paperList" id="priority">
-                        <div class="listItem sortableOption" data-id="r18dev" data-value="1" id="prio_r18dev">
+                        <div class="listItem sortableOption" data-id="r18dev" data-priority="1" id="prio_r18dev">
                             <div class="listItemBody">
                                 <div class="listItemBodyText">R18.dev</div>
                             </div>
-                            <button type="button" is="paper-icon-button-light" title="Down"
-                                    class="btnSortableMoveDown btnSortable">
-                                <span class="material-icons keyboard_arrow_down" aria-hidden="true"></span>
+                            <button class="btnSortableMoveDown btnSortable" is="paper-icon-button-light" title="Down"
+                                    type="button">
+                                <span aria-hidden="true" class="material-icons keyboard_arrow_down"></span>
                             </button>
                         </div>
-                        <div class="listItem sortableOption" data-id="javlib" data-value="3" id="prio_javlib">
-                            <div class="listItemBody">
-                                <div class="listItemBodyText">Javlibrary</div>
-                            </div>
-                            <button type="button" is="paper-icon-button-light" title="Up"
-                                    class="btnSortableMoveUp btnSortable">
-                                <span class="material-icons keyboard_arrow_up" aria-hidden="true"></span>
-                            </button>
-                        </div>
-                        <div class="listItem sortableOption" data-id="dmm" data-value="4" id="prio_dmm">
-                            <div class="listItemBody">
-                                <div class="listItemBodyText">DMM</div>
-                            </div>
-                            <button type="button" is="paper-icon-button-light" title="Up"
-                                    class="btnSortableMoveUp btnSortable">
-                                <span class="material-icons keyboard_arrow_up" aria-hidden="true"></span>
-                            </button>
-                        </div>
-                        <div class="listItem sortableOption" data-id="geki" data-value="2" id="prio_geki">
+                        <div class="listItem sortableOption" data-id="geki" data-priority="2" id="prio_geki">
                             <div class="listItemBody">
                                 <div class="listItemBodyText">Gekiyasu</div>
                             </div>
-                            <button type="button" is="paper-icon-button-light" title="Up"
-                                    class="btnSortableMoveUp btnSortable">
-                                <span class="material-icons keyboard_arrow_up" aria-hidden="true"></span>
+                            <button class="btnSortableMoveUp btnSortable" is="paper-icon-button-light" title="Up"
+                                    type="button">
+                                <span aria-hidden="true" class="material-icons keyboard_arrow_up"></span>
+                            </button>
+                        </div>
+                        <div class="listItem sortableOption" data-id="javlib" data-priority="3" id="prio_javlib">
+                            <div class="listItemBody">
+                                <div class="listItemBodyText">Javlibrary</div>
+                            </div>
+                            <button class="btnSortableMoveUp btnSortable" is="paper-icon-button-light" title="Up"
+                                    type="button">
+                                <span aria-hidden="true" class="material-icons keyboard_arrow_up"></span>
+                            </button>
+                        </div>
+                        <div class="listItem sortableOption" data-id="dmm" data-priority="4" id="prio_dmm">
+                            <div class="listItemBody">
+                                <div class="listItemBodyText">DMM</div>
+                            </div>
+                            <button class="btnSortableMoveUp btnSortable" is="paper-icon-button-light" title="Up"
+                                    type="button">
+                                <span aria-hidden="true" class="material-icons keyboard_arrow_up"></span>
                             </button>
                         </div>
                     </div>
