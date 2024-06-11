@@ -12,6 +12,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using AngleSharp.XPath;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
@@ -52,7 +53,7 @@ public class DmmScraper : IScraper
 
     private static bool GetTrailers => IvInfo.Instance?.Configuration.DmmGetTrailers ?? false;
 
-    public int Priority => IvInfo.Instance?.Configuration.DmmScraperPriority ?? 1;
+    public int Priority => IvInfo.Instance?.Configuration.DmmScraperPriority ?? 4;
 
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
         MovieInfo info, CancellationToken cancellationToken)
@@ -177,7 +178,7 @@ public class DmmScraper : IScraper
                 metadata.AddPerson(new PersonInfo
                 {
                     Name = performer,
-                    Type = PersonType.Actor
+                    Type = PersonKind.Actor
                 });
             }
         }
@@ -186,7 +187,7 @@ public class DmmScraper : IScraper
             metadata.AddPerson(new PersonInfo
             {
                 Name = director,
-                Type = PersonType.Director
+                Type = PersonKind.Director
             });
 
         if (!string.IsNullOrEmpty(trailerUrl))

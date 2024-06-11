@@ -9,6 +9,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using AngleSharp.XPath;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
@@ -42,7 +43,7 @@ public class GekiyasuScraper : IScraper
         _logger = logger;
     }
 
-    public int Priority => IvInfo.Instance?.Configuration.GekiyasuScraperPriority ?? 3;
+    public int Priority => IvInfo.Instance?.Configuration.GekiyasuScraperPriority ?? 2;
 
     public bool Enabled => IvInfo.Instance?.Configuration.GekiyasuScraperEnabled ?? false;
     public bool ImgEnabled => IvInfo.Instance?.Configuration.GekiyasuImgEnabled ?? false;
@@ -136,7 +137,7 @@ public class GekiyasuScraper : IScraper
             metadata.AddPerson(new PersonInfo
             {
                 Name = person,
-                Type = PersonType.Actor
+                Type = PersonKind.Actor
             });
 
         metadata.Item.SetProviderId(Name, scraperId);

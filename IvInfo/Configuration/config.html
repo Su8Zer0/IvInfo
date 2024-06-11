@@ -9,7 +9,6 @@
      data-require="emby-input,emby-button,emby-checkbox"
      data-role="page"
      id="ivinfo-config">
-    <script src="https://SortableJS.github.io/Sortable/Sortable.js" type="module"></script>
     <div data-role="content">
         <div class="content-primary">
             <form class="configForm" id="ivinfo-config-form">
@@ -27,6 +26,35 @@
                 <br/>
                 <fieldset>
                     <legend>Scrapers enabling and configuration</legend>
+                    <fieldset>
+                        <legend>R18.dev scraper</legend>
+                        <label class="checkboxContainer">
+                            <input id="r18dev" is="emby-checkbox" type="checkbox"/>
+                            <span>Scraper enabled</span>
+                        </label>
+                        <fieldset id="r18dev_options">
+                            <label class="checkboxContainer">
+                                <input id="r18dev_img" is="emby-checkbox" type="checkbox"/>
+                                <span>Scrape images</span>
+                            </label>
+                            <label class="checkboxContainer">
+                                <input id="r18dev_trailers" is="emby-checkbox" type="checkbox"/>
+                                <span title="This option currently is useless as there is no method to play remote trailers">Get trailers*</span>
+                            </label>
+                            <label class="checkboxContainer">
+                                <input id="r18dev_titles" is="emby-checkbox" type="checkbox"/>
+                                <span>Fetch english translated title as original title</span>
+                            </label>
+                            <label class="checkboxContainer">
+                                <input id="r18dev_cast" is="emby-checkbox" type="checkbox"/>
+                                <span>Fetch english translated cast names (saved as role name)</span>
+                            </label>
+                            <label class="checkboxContainer">
+                                <input id="r18dev_tags" is="emby-checkbox" type="checkbox"/>
+                                <span>Fetch english tags/genres instead of japanese</span>
+                            </label>
+                        </fieldset>
+                    </fieldset>
                     <fieldset>
                         <legend>Javlibrary scraper</legend>
                         <label class="checkboxContainer">
@@ -87,23 +115,41 @@
                 <fieldset id="scrapers_order">
                     <legend>Scrapers priority (top one is queried first)</legend>
                     <div class="paperList" id="priority">
-                        <div class="listItem" data-id="javlib" data-value="1" id="prio_javlib">
-                            <span class="material-icons drag_indicator"></span>
+                        <div class="listItem sortableOption" data-id="r18dev" data-priority="1" id="prio_r18dev">
                             <div class="listItemBody">
-                                <div class="listItemBodyText">Javlibrary</div>
+                                <div class="listItemBodyText">R18.dev</div>
                             </div>
+                            <button class="btnSortableMoveDown btnSortable" is="paper-icon-button-light" title="Down"
+                                    type="button">
+                                <span aria-hidden="true" class="material-icons keyboard_arrow_down"></span>
+                            </button>
                         </div>
-                        <div class="listItem" data-id="dmm" data-value="2" id="prio_dmm">
-                            <span class="material-icons drag_indicator"></span>
-                            <div class="listItemBody">
-                                <div class="listItemBodyText">DMM</div>
-                            </div>
-                        </div>
-                        <div class="listItem" data-id="geki" data-value="3" id="prio_geki">
-                            <span class="material-icons drag_indicator"></span>
+                        <div class="listItem sortableOption" data-id="geki" data-priority="2" id="prio_geki">
                             <div class="listItemBody">
                                 <div class="listItemBodyText">Gekiyasu</div>
                             </div>
+                            <button class="btnSortableMoveUp btnSortable" is="paper-icon-button-light" title="Up"
+                                    type="button">
+                                <span aria-hidden="true" class="material-icons keyboard_arrow_up"></span>
+                            </button>
+                        </div>
+                        <div class="listItem sortableOption" data-id="javlib" data-priority="3" id="prio_javlib">
+                            <div class="listItemBody">
+                                <div class="listItemBodyText">Javlibrary</div>
+                            </div>
+                            <button class="btnSortableMoveUp btnSortable" is="paper-icon-button-light" title="Up"
+                                    type="button">
+                                <span aria-hidden="true" class="material-icons keyboard_arrow_up"></span>
+                            </button>
+                        </div>
+                        <div class="listItem sortableOption" data-id="dmm" data-priority="4" id="prio_dmm">
+                            <div class="listItemBody">
+                                <div class="listItemBodyText">DMM</div>
+                            </div>
+                            <button class="btnSortableMoveUp btnSortable" is="paper-icon-button-light" title="Up"
+                                    type="button">
+                                <span aria-hidden="true" class="material-icons keyboard_arrow_up"></span>
+                            </button>
                         </div>
                     </div>
                 </fieldset>

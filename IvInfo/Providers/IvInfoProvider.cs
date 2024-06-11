@@ -24,7 +24,7 @@ namespace IvInfo.Providers;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemoteImageProvider
 {
-    private const string IdPattern = @".*?(\w{2,5}-\w{0,2}\d{3,6}\w?).*";
+    private const string IdPattern = @".*?(\w{2,5}\d{0,2}-\w{0,2}\d{3,6}\w?).*";
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<IvInfoProvider> _logger;

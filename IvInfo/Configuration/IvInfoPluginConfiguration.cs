@@ -8,6 +8,13 @@ public class IvInfoPluginConfiguration : BasePluginConfiguration
 {
     public bool FirstOnly { get; set; }
     public bool Overwriting { get; set; }
+    
+    public bool R18DevScraperEnabled { get; set; }
+    public bool R18DevImgEnabled { get; set; }
+    public bool R18DevTitles { get; set; }
+    public bool R18DevCast { get; set; }
+    public bool R18DevTags { get; set; }
+    public bool R18DevGetTrailers { get; set; }
     public bool JavlibraryScraperEnabled { get; set; }
     public bool JavlibraryImgEnabled { get; set; }
     public bool JavlibraryTitles { get; set; }
@@ -18,6 +25,7 @@ public class IvInfoPluginConfiguration : BasePluginConfiguration
     public bool DmmGetTrailers { get; set; }
     public bool GekiyasuScraperEnabled { get; set; }
     public bool GekiyasuImgEnabled { get; set; }
+    public int R18DevScraperPriority { get; set; }
     public int JavLibraryScraperPriority { get; set; }
     public int DmmScraperPriority { get; set; }
     public int GekiyasuScraperPriority { get; set; }

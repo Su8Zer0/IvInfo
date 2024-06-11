@@ -58,3 +58,16 @@ public class GekiyasuScraperExternalId : IExternalId
     public ExternalIdMediaType? Type => null;
     public string? UrlFormatString => "https://www.gekiyasu-dvdshop.jp/{0}";
 }
+
+public class R18DevExternalId : IExternalId
+{
+    public bool Supports(IHasProviderIds item)
+    {
+        return item is Movie;
+    }
+
+    public string ProviderName => R18DevScraper.Name;
+    public string Key => R18DevScraper.Name;
+    public ExternalIdMediaType? Type => null;
+    public string? UrlFormatString => "https://r18.dev/videos/vod/movies/detail/-/id={0}/";
+}
