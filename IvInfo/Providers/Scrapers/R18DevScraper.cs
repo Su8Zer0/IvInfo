@@ -26,6 +26,7 @@ public class R18DevScraper(ILogger logger) : IScraper
     private static bool EngTitles => IvInfo.Instance?.Configuration.R18DevTitles ?? false;
     private static bool EngCastNames => IvInfo.Instance?.Configuration.R18DevCast ?? false;
     private static bool EngTags => IvInfo.Instance?.Configuration.R18DevTags ?? false;
+    private static bool Trailers => IvInfo.Instance?.Configuration.R18DevGetTrailers ?? false;
 
     private const string SearchUrl = "https://r18.dev/videos/vod/movies/detail/-/dvd_id={0}/json";
     private const string DataUrl = "https://r18.dev/videos/vod/movies/detail/-/combined={0}/json";
@@ -87,6 +88,10 @@ public class R18DevScraper(ILogger logger) : IScraper
         FillJpMetadata(doc.RootElement, metadata);
         FillEnMetadata(doc.RootElement, metadata);
         FillCastStaff(doc.RootElement, metadata);
+
+        var trailerUrl = GetTrailerUrl(doc.RootElement, cancellationToken);
+        if (!string.IsNullOrEmpty(trailerUrl))
+            metadata.Item.AddTrailerUrl(trailerUrl);
 
         scraperId ??= doc.RootElement.GetProperty("content_id").GetString();
         metadata.Item.SetProviderId(Name, scraperId);
@@ -274,5 +279,17 @@ public class R18DevScraper(ILogger logger) : IScraper
                 Type = PersonKind.Director,
                 Role = EngCastNames ? person.Item2 : null
             });
+    }
+
+    private string? GetTrailerUrl(JsonElement root, CancellationToken cancellationToken)
+    {
+        if (!Trailers)
+        {
+            logger.LogDebug("{Name}: Getting trailers disabled", Name);
+            return string.Empty;
+        }
+
+        logger.LogDebug("{Name}: GetTrailerUrl for", Name);
+        return root.TryGetProperty("sample_url", out var trailerElement) ? trailerElement.GetString() : string.Empty;
     }
 }
