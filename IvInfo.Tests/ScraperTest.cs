@@ -1,11 +1,15 @@
 ﻿using System.Collections.Immutable;
+using IvInfo.Configuration;
 using IvInfo.Providers;
 using IvInfo.Providers.Scrapers;
+using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
+using MediaBrowser.Model.Serialization;
 using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace IvInfo.Tests;
 
@@ -124,6 +128,7 @@ public class ScraperTest
     [TestCase(Scraper.JavlibraryScraper)]
     [TestCase(Scraper.DmmScraper), Category("GithubSkip")]
     [TestCase(Scraper.GekiyasuScraper)]
+    [TestCase(Scraper.R18DevScraper)]
     public async Task FillMetadataShouldReturnFalseWithoutIds(Scraper scraper)
     {
         var info = new ItemLookupInfo
@@ -144,23 +149,24 @@ public class ScraperTest
     }
 
     [Test]
-    [TestCase(Scraper.JavlibraryScraper, TestConsts.JavlibraryScraperId)]
-    [TestCase(Scraper.DmmScraper, TestConsts.DmmScraperId), Category("GithubSkip")]
-    [TestCase(Scraper.GekiyasuScraper, TestConsts.GekiyasuScraperId)]
-    public async Task FillMetadataShouldReturnTrueWithScraperId(Scraper scraper, string scraperId)
+    [TestCase(Scraper.JavlibraryScraper, JavlibraryScraper.Name, TestConsts.JavlibraryScraperId)]
+    [TestCase(Scraper.DmmScraper, DmmScraper.Name, TestConsts.DmmScraperId), Category("GithubSkip")]
+    [TestCase(Scraper.GekiyasuScraper, GekiyasuScraper.Name, TestConsts.GekiyasuScraperId)]
+    [TestCase(Scraper.R18DevScraper, R18DevScraper.Name, TestConsts.R18DevScraperId)]
+    public async Task FillMetadataShouldReturnTrueWithScraperId(Scraper scraper, string scraperName, string scraperId)
     {
         var info = new ItemLookupInfo
         {
             IsAutomated = false
         };
         info.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        info.SetProviderId(JavlibraryScraper.Name, scraperId);
+        info.SetProviderId(scraperName, scraperId);
         var movie = new Movie
         {
             Name = TestConsts.Name
         };
         movie.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
-        movie.SetProviderId(JavlibraryScraper.Name, scraperId);
+        movie.SetProviderId(scraperName, scraperId);
         var metadata = new MetadataResult<Movie>
         {
             Item = movie
@@ -171,9 +177,51 @@ public class ScraperTest
     }
 
     [Test]
+    [TestCase(Scraper.JavlibraryScraper, JavlibraryScraper.Name, TestConsts.JavlibraryScraperId)]
+    [TestCase(Scraper.R18DevScraper, R18DevScraper.Name, TestConsts.R18DevKanjiTitleScraperId)]
+    public async Task FillMetadataShouldFillEnglishData(Scraper scraper, string scraperName, string scraperId)
+    {
+        var info = new ItemLookupInfo
+        {
+            IsAutomated = false
+        };
+        info.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
+        info.SetProviderId(scraperName, scraperId);
+        var movie = new Movie
+        {
+            Name = TestConsts.Name
+        };
+        movie.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
+        movie.SetProviderId(scraperName, scraperId);
+        var metadata = new MetadataResult<Movie>
+        {
+            Item = movie
+        };
+
+        var paths = new Mock<IApplicationPaths>();
+        paths.Setup(p => p.PluginsPath).Returns(".");
+        paths.Setup(p => p.PluginConfigurationsPath).Returns(".");
+        var config = new IvInfoPluginConfiguration
+        {
+            R18DevTitles = true,
+            R18DevCast = true,
+            R18DevTags = true
+        };
+        var xml = new Mock<IXmlSerializer>();
+        xml.Setup(x => x.DeserializeFromFile(It.IsAny<Type>(), It.IsAny<string>())).Returns(config);
+
+        var ivInfo = new IvInfo(paths.Object, xml.Object);
+
+        var ret = await GetScraper(scraper).FillMetadata(metadata, info, CancellationToken.None);
+        Assert.That(ret, Is.True);
+        Assert.That(metadata.Item.OriginalTitle, Is.EqualTo(TestConsts.EngTitle));
+    }
+
+    [Test]
     [TestCase(Scraper.JavlibraryScraper)]
     [TestCase(Scraper.DmmScraper), Category("GithubSkip")]
     [TestCase(Scraper.GekiyasuScraper)]
+    [TestCase(Scraper.R18DevScraper)]
     public async Task GetImagesShouldReturnEmptyListForMissingScraperId(Scraper scraper)
     {
         var info = new ItemLookupInfo
@@ -197,6 +245,7 @@ public class ScraperTest
     [TestCase(Scraper.JavlibraryScraper, JavlibraryScraper.Name, TestConsts.JavlibraryScraperId)]
     [TestCase(Scraper.DmmScraper, DmmScraper.Name, TestConsts.DmmScraperId), Category("GithubSkip")]
     [TestCase(Scraper.GekiyasuScraper, GekiyasuScraper.Name, TestConsts.GekiyasuScraperId)]
+    [TestCase(Scraper.R18DevScraper, R18DevScraper.Name, TestConsts.R18DevScraperId)]
     public async Task GetImagesShouldReturnSingleItemForPrimaryImage(Scraper scraper, string scraperName,
         string scraperId)
     {
@@ -223,6 +272,7 @@ public class ScraperTest
     [TestCase(Scraper.JavlibraryScraper, JavlibraryScraper.Name, TestConsts.JavlibraryScraperId)]
     [TestCase(Scraper.DmmScraper, DmmScraper.Name, TestConsts.DmmScraperId), Category("GithubSkip")]
     [TestCase(Scraper.GekiyasuScraper, GekiyasuScraper.Name, TestConsts.GekiyasuScraperId)]
+    [TestCase(Scraper.R18DevScraper, R18DevScraper.Name, TestConsts.R18DevScraperId)]
     public async Task GetImagesShouldReturnSingleItemForBoxImage(Scraper scraper, string scraperName, string scraperId)
     {
         var info = new ItemLookupInfo
@@ -246,7 +296,9 @@ public class ScraperTest
 
     [Test]
     [TestCase(Scraper.DmmScraper, DmmScraper.Name, TestConsts.DmmScraperId), Category("GithubSkip")]
-    public async Task GetImagesShouldReturnItemsForScreenshotImage(Scraper scraper, string scraperName, string scraperId)
+    [TestCase(Scraper.R18DevScraper, R18DevScraper.Name, TestConsts.R18DevScraperId)]
+    public async Task GetImagesShouldReturnItemsForScreenshotImage(Scraper scraper, string scraperName,
+        string scraperId)
     {
         var info = new ItemLookupInfo
         {
@@ -263,15 +315,17 @@ public class ScraperTest
         movie.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
         movie.SetProviderId(scraperName, scraperId);
 
-        var ret = await GetScraper(scraper).GetImages(movie, CancellationToken.None, ImageType.Box);
-        Assert.That(ret.Count(), Is.EqualTo(1));
+        var ret = await GetScraper(scraper).GetImages(movie, CancellationToken.None, ImageType.Screenshot);
+        Assert.That(ret.Count(), Is.GreaterThan(0));
     }
 
     [Test]
     [TestCase(Scraper.JavlibraryScraper, JavlibraryScraper.Name, TestConsts.JavlibraryScraperId)]
     [TestCase(Scraper.DmmScraper, DmmScraper.Name, TestConsts.DmmScraperId), Category("GithubSkip")]
     [TestCase(Scraper.GekiyasuScraper, GekiyasuScraper.Name, TestConsts.GekiyasuScraperId)]
-    public async Task GetImagesShouldReturnEmptyListForOtherImageTypes(Scraper scraper, string scraperName, string scraperId)
+    [TestCase(Scraper.R18DevScraper, R18DevScraper.Name, TestConsts.R18DevScraperId)]
+    public async Task GetImagesShouldReturnEmptyListForOtherImageTypes(Scraper scraper, string scraperName,
+        string scraperId)
     {
         var info = new ItemLookupInfo
         {
