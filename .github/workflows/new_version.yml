@@ -48,7 +48,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 8.0.x
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -62,7 +62,7 @@ jobs:
           cp manifest.json repo/
         shell: sh
       - name: Build plugin
-        run: jprm plugin build --output ./repo --dotnet-framework net6.0 .
+        run: jprm plugin build --output ./repo --dotnet-framework net8.0 .
         shell: sh
       - name: Run tests
         run: dotnet test --nologo -c Release -v normal --filter "Category!=GithubSkip"
