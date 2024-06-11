@@ -218,6 +218,44 @@ public class ScraperTest
     }
 
     [Test]
+    [TestCase(Scraper.DmmScraper, DmmScraper.Name, TestConsts.DmmScraperId), Category("GithubSkip")]
+    [TestCase(Scraper.R18DevScraper, R18DevScraper.Name, TestConsts.R18DevScraperId)]
+    public async Task FillMetadataShouldSetTrailerUrl(Scraper scraper, string scraperName, string scraperId)
+    {
+        var info = new ItemLookupInfo
+        {
+            IsAutomated = false
+        };
+        info.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
+        info.SetProviderId(scraperName, scraperId);
+        var movie = new Movie
+        {
+            Name = TestConsts.Name
+        };
+        movie.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
+        movie.SetProviderId(scraperName, scraperId);
+        var metadata = new MetadataResult<Movie>
+        {
+            Item = movie
+        };
+        
+        var paths = new Mock<IApplicationPaths>();
+        paths.Setup(p => p.PluginsPath).Returns(".");
+        paths.Setup(p => p.PluginConfigurationsPath).Returns(".");
+        var config = new IvInfoPluginConfiguration
+        {
+            R18DevGetTrailers = true
+        };
+        var xml = new Mock<IXmlSerializer>();
+        xml.Setup(x => x.DeserializeFromFile(It.IsAny<Type>(), It.IsAny<string>())).Returns(config);
+
+        var ivInfo = new IvInfo(paths.Object, xml.Object);
+
+        var ret = await GetScraper(scraper).FillMetadata(metadata, info, CancellationToken.None);
+        Assert.That(metadata.Item.RemoteTrailers.Count, Is.EqualTo(1));
+    }
+    
+    [Test]
     [TestCase(Scraper.JavlibraryScraper)]
     [TestCase(Scraper.DmmScraper), Category("GithubSkip")]
     [TestCase(Scraper.GekiyasuScraper)]
@@ -308,17 +346,19 @@ public class ScraperTest
         info.SetProviderId(scraperName, scraperId);
         var movie = new Movie
         {
-            Name = TestConsts.Name,
-            PreferredMetadataLanguage = TestConsts.Lang,
-            PreferredMetadataCountryCode = TestConsts.Lang.ToUpper()
+            Name = TestConsts.Name
         };
         movie.SetProviderId(IvInfoConstants.Name, TestConsts.GoodGlobalId);
         movie.SetProviderId(scraperName, scraperId);
+        var metadata = new MetadataResult<Movie>
+        {
+            Item = movie
+        };
 
-        var ret = await GetScraper(scraper).GetImages(movie, CancellationToken.None, ImageType.Screenshot);
-        Assert.That(ret.Count(), Is.GreaterThan(0));
+        var ret = await GetScraper(scraper).FillMetadata(metadata, info, CancellationToken.None);
+        Assert.That(ret, Is.True);
     }
-
+    
     [Test]
     [TestCase(Scraper.JavlibraryScraper, JavlibraryScraper.Name, TestConsts.JavlibraryScraperId)]
     [TestCase(Scraper.DmmScraper, DmmScraper.Name, TestConsts.DmmScraperId), Category("GithubSkip")]
