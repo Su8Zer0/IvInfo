@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
@@ -22,10 +23,16 @@ public class R18DevScraper(ILogger logger) : IScraper
     public bool ImgEnabled => IvInfo.Instance?.Configuration.R18DevImgEnabled ?? false;
     public int Priority => IvInfo.Instance?.Configuration.R18DevScraperPriority ?? 1;
 
+    private static bool EngTitles => IvInfo.Instance?.Configuration.R18DevTitles ?? false;
+    private static bool EngCastNames => IvInfo.Instance?.Configuration.R18DevCast ?? false;
+    private static bool EngTags => IvInfo.Instance?.Configuration.R18DevTags ?? false;
+
     private const string SearchUrl = "https://r18.dev/videos/vod/movies/detail/-/dvd_id={0}/json";
     private const string DataUrl = "https://r18.dev/videos/vod/movies/detail/-/combined={0}/json";
+    private const string ActressImageUrl = "https://pics.dmm.co.jp/mono/actjpgs/{0}";
 
-    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList, MovieInfo info, CancellationToken cancellationToken)
+    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(IEnumerable<RemoteSearchResult> resultList,
+        MovieInfo info, CancellationToken cancellationToken)
     {
         var globalId = info.GetProviderId(IvInfoConstants.Name) ?? IvInfoProvider.GetId(info);
         logger.LogDebug("{Name}: searching for global id: {Id}", Name, globalId);
@@ -37,7 +44,7 @@ public class R18DevScraper(ILogger logger) : IScraper
         {
             return localResultList;
         }
-        
+
         var scraperId = doc.RootElement.GetProperty("content_id").GetString();
         var title = doc.RootElement.GetProperty("title_ja").GetString();
         var imgUrl = doc.RootElement.GetProperty("jacket_thumb_url").GetString();
@@ -57,7 +64,8 @@ public class R18DevScraper(ILogger logger) : IScraper
         return localResultList;
     }
 
-    public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, ItemLookupInfo info, CancellationToken cancellationToken)
+    public async Task<bool> FillMetadata(MetadataResult<Movie> metadata, ItemLookupInfo info,
+        CancellationToken cancellationToken)
     {
         var scraperId = metadata.Item.GetProviderId(Name);
         var globalId = metadata.Item.GetProviderId(IvInfoConstants.Name);
@@ -76,18 +84,19 @@ public class R18DevScraper(ILogger logger) : IScraper
             return false;
         }
 
-        var title = doc.RootElement.GetProperty("title_ja").GetString();
-        
-        if (!string.IsNullOrEmpty(title) && string.IsNullOrWhiteSpace(metadata.Item.Name))
-            metadata.Item.Name = title;
+        FillJpMetadata(doc.RootElement, metadata);
+        FillEnMetadata(doc.RootElement, metadata);
+        FillCastStaff(doc.RootElement, metadata);
 
+        scraperId ??= doc.RootElement.GetProperty("content_id").GetString();
         metadata.Item.SetProviderId(Name, scraperId);
 
         logger.LogDebug("{Name}: metadata fetching finished", Name);
         return true;
     }
 
-    public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken, ImageType imageType = ImageType.Primary)
+    public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
+        ImageType imageType = ImageType.Primary)
     {
         logger.LogDebug("{Name}: searching for image {ImageType}", Name, imageType);
         var result = new List<RemoteImageInfo>();
@@ -127,9 +136,15 @@ public class R18DevScraper(ILogger logger) : IScraper
                     { Url = boxUrl, Type = imageType, ProviderName = Name });
                 break;
             case ImageType.Screenshot:
-                doc.RootElement.GetProperty("gallery");
+                result.AddRange(doc.RootElement.GetProperty("gallery")
+                    .EnumerateArray()
+                    .Select(entry => new RemoteImageInfo
+                    {
+                        Url = entry.GetProperty("image_thumb").GetString(),
+                        ThumbnailUrl = entry.GetProperty("image_thumb").GetString(), Type = imageType,
+                        ProviderName = Name
+                    }));
                 break;
-                // result.AddRange(screenshots);
             case ImageType.Art:
             case ImageType.Backdrop:
             case ImageType.Banner:
@@ -156,28 +171,108 @@ public class R18DevScraper(ILogger logger) : IScraper
         yield return ImageType.Screenshot;
     }
 
-    private static async Task<JsonDocument?> GetData(CancellationToken cancellationToken, string globalId = "", string scraperId = "")
+    private static async Task<JsonDocument?> GetData(CancellationToken cancellationToken, string globalId = "",
+        string scraperId = "")
     {
         var client = new HttpClient();
         JsonDocument doc;
-        if (!string.IsNullOrEmpty(scraperId))
+        HttpResponseMessage response;
+        if (string.IsNullOrEmpty(scraperId))
         {
-            var response = await client.GetAsync(string.Format(DataUrl, scraperId), cancellationToken);
-            doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
-        }
-        else
-        {
-            var response = await client.GetAsync(string.Format(SearchUrl, globalId), cancellationToken);
-            doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            response = await client.GetAsync(string.Format(SearchUrl, globalId), cancellationToken);
+            if (!response.IsSuccessStatusCode) return null;
+            doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken),
+                cancellationToken: cancellationToken);
             scraperId = doc.RootElement.GetProperty("content_id").GetString() ?? string.Empty;
-            if (string.IsNullOrEmpty(scraperId))
-            {
-                return doc;
-            }
-            response = await client.GetAsync(string.Format(DataUrl, scraperId), cancellationToken);
-            doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            if (string.IsNullOrEmpty(scraperId)) return null;
         }
-        
+
+        response = await client.GetAsync(string.Format(DataUrl, scraperId), cancellationToken);
+        if (!response.IsSuccessStatusCode) return null;
+
+        doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken),
+            cancellationToken: cancellationToken);
+
         return doc;
+    }
+
+    private static void FillJpMetadata(JsonElement root,
+        MetadataResult<Movie> metadata)
+    {
+        var title = root.GetProperty("title_ja").GetString();
+        var releaseDateExists = root.GetProperty("release_date").TryGetDateTime(out var releaseDate);
+        var genres = root.GetProperty("categories").EnumerateArray()
+            .Select(element => element.GetProperty("name_ja").GetString()).ToList();
+        var makerExist = root.TryGetProperty("maker_name_ja", out var makerElement);
+        var maker = makerExist ? makerElement.GetString() : string.Empty;
+        var seriesExist = root.TryGetProperty("series_name_ja", out var seriesElement);
+        var series = seriesExist ? seriesElement.GetString() : string.Empty;
+
+        if (!string.IsNullOrEmpty(title) && string.IsNullOrWhiteSpace(metadata.Item.Name))
+            metadata.Item.Name = title;
+        if (releaseDateExists)
+        {
+            if (metadata.Item.PremiereDate == null || IScraper.Overwriting)
+                metadata.Item.PremiereDate = releaseDate;
+            if (metadata.Item.ProductionYear == null || IScraper.Overwriting)
+                metadata.Item.ProductionYear = releaseDate.Year;
+        }
+
+        if (string.IsNullOrWhiteSpace(metadata.Item.OfficialRating) || IScraper.Overwriting)
+            metadata.Item.OfficialRating = "R";
+        if (makerExist && !metadata.Item.Studios.Contains(maker))
+            metadata.Item.AddStudio(maker);
+        if (seriesExist && (string.IsNullOrEmpty(metadata.Item.CollectionName) || IScraper.Overwriting))
+            metadata.Item.CollectionName = series;
+
+        if ((metadata.Item.Genres.Length != 0 && !IScraper.Overwriting) || EngTags) return;
+        foreach (var genre in genres.Where(genre => !metadata.Item.Genres.Contains(genre)))
+            metadata.Item.AddGenre(genre);
+    }
+
+    private static void FillEnMetadata(JsonElement root, MetadataResult<Movie> metadata)
+    {
+        if (EngTitles)
+        {
+            var title = root.GetProperty("title_en").GetString();
+
+            if (!string.IsNullOrEmpty(title) && string.IsNullOrWhiteSpace(metadata.Item.OriginalTitle))
+                metadata.Item.OriginalTitle = title;
+        }
+
+        if (!EngTags) return;
+        var genres = root.GetProperty("categories").EnumerateArray()
+            .Select(element => element.GetProperty("name_en").GetString()).ToList();
+        if ((metadata.Item.Genres.Length == 0 || IScraper.Overwriting) && EngTags)
+            foreach (var genre in genres)
+                if (!metadata.Item.Genres.Contains(genre))
+                    metadata.Item.AddGenre(genre);
+    }
+
+    private static void FillCastStaff(JsonElement root, MetadataResult<Movie> metadata)
+    {
+        var cast = root.GetProperty("actresses").EnumerateArray()
+            .Select(element => (element.GetProperty("name_kanji").GetString(),
+                element.GetProperty("name_romaji").GetString(), element.GetProperty("image_url").GetString())).ToList();
+        var director = root.GetProperty("directors").EnumerateArray()
+            .Select(element => (element.GetProperty("name_kanji").GetString(),
+                element.GetProperty("name_romaji").GetString())).ToList();
+
+        foreach (var person in cast.Where(person => !metadata.People?.Exists(p => p.Name == person.Item1) ?? true))
+            metadata.AddPerson(new PersonInfo
+            {
+                Name = person.Item1,
+                Type = PersonKind.Actor,
+                Role = EngCastNames ? person.Item2 : null,
+                ImageUrl = person.Item3 != null ? string.Format(ActressImageUrl, person.Item3) : null
+            });
+
+        foreach (var person in director.Where(person => !metadata.People?.Exists(p => p.Name == person.Item1) ?? true))
+            metadata.AddPerson(new PersonInfo
+            {
+                Name = person.Item1,
+                Type = PersonKind.Director,
+                Role = EngCastNames ? person.Item2 : null
+            });
     }
 }
