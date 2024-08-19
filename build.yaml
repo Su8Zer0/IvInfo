@@ -1,7 +1,7 @@
 name: "IvInfo"
 guid: "abe0c619-a145-4890-896b-cb1089ade4fe"
 imageUrl: "https://raw.githubusercontent.com/Su8Zer0/IvInfo/master/logo.png"
-version: "1.0.0.0"
+version: "1.0.0.1"
 targetAbi: "10.9.0.0"
 framework: "net8.0"
 owner: "Su8Zer0"
@@ -19,4 +19,4 @@ artifacts:
   - "AngleSharp.dll"
   - "AngleSharp.XPath.dll"
 changelog: |
-  added R18.dev scraper (jp/en titles, jp/en cast, images - box + primary + screenshots, jp/en tags, trailers)
+  updated dependencies

@@ -2,9 +2,9 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <PackageVersion>1.0.0.0</PackageVersion>
-        <AssemblyVersion>1.0.0.0</AssemblyVersion>
-        <FileVersion>1.0.0.0</FileVersion>
+        <PackageVersion>1.0.0.1</PackageVersion>
+        <AssemblyVersion>1.0.0.1</AssemblyVersion>
+        <FileVersion>1.0.0.1</FileVersion>
         <Nullable>enable</Nullable>
         <Authors>Su8Zer0</Authors>
         <PackageProjectUrl>https://github.com/Su8Zer0/IvInfo</PackageProjectUrl>
@@ -19,8 +19,8 @@
     <ItemGroup>
         <PackageReference Include="AngleSharp" Version="1.1.2" />
         <PackageReference Include="AngleSharp.XPath" Version="2.0.4" />
-        <PackageReference Include="Jellyfin.Controller" Version="10.9.6" />
-        <PackageReference Include="Jellyfin.Model" Version="10.9.6" />
+        <PackageReference Include="Jellyfin.Controller" Version="10.9.9" />
+        <PackageReference Include="Jellyfin.Model" Version="10.9.9" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
         <PackageReference Include="String.Similarity" Version="3.0.0"/>
     </ItemGroup>
