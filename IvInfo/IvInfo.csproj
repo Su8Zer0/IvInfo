@@ -2,9 +2,9 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <PackageVersion>1.0.0.1</PackageVersion>
-        <AssemblyVersion>1.0.0.1</AssemblyVersion>
-        <FileVersion>1.0.0.1</FileVersion>
+        <PackageVersion>1.0.0.2</PackageVersion>
+        <AssemblyVersion>1.0.0.2</AssemblyVersion>
+        <FileVersion>1.0.0.2</FileVersion>
         <Nullable>enable</Nullable>
         <Authors>Su8Zer0</Authors>
         <PackageProjectUrl>https://github.com/Su8Zer0/IvInfo</PackageProjectUrl>
@@ -26,11 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Configuration\config.html"/>
-        <None Remove="Configuration\config.js"/>
-        <EmbeddedResource Include="Configuration\config.html"/>
-        <EmbeddedResource Include="Configuration\config.js"/>
+        <EmbeddedResource Include="Configuration\ivinfo-config.html"/>
+        <EmbeddedResource Include="Configuration\ivinfo-config.js"/>
     </ItemGroup>
-
-
 </Project>
