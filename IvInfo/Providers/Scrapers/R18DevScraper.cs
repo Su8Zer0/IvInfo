@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -180,6 +182,14 @@ public class R18DevScraper(ILogger logger) : IScraper
         string scraperId = "")
     {
         var client = new HttpClient();
+        client.DefaultRequestHeaders.Referrer = new Uri("https://r18.dev/");
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        var moz = new ProductHeaderValue("Mozilla", "5.0");
+        var gecko = new ProductHeaderValue("Gecko", "20100101");
+        var ff =  new ProductHeaderValue("Firefox", "139.0");
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(moz));
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(gecko));
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(ff));
         JsonDocument doc;
         HttpResponseMessage response;
         if (string.IsNullOrEmpty(scraperId))
