@@ -32,12 +32,12 @@ public class IvInfo : BasePlugin<IvInfoPluginConfiguration>, IHasWebPages
         yield return new PluginPageInfo
         {
             Name = Name,
-            EmbeddedResourcePath = GetType().Namespace + ".Configuration.config.html"
+            EmbeddedResourcePath = GetType().Namespace + ".Configuration.ivinfo-config.html"
         };
         yield return new PluginPageInfo
         {
-            Name = "config.js",
-            EmbeddedResourcePath = GetType().Namespace + ".Configuration.config.js"
+            Name = "ivinfo-config.js",
+            EmbeddedResourcePath = GetType().Namespace + ".Configuration.ivinfo-config.js"
         };
     }
 
