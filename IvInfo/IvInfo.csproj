@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <PackageVersion>1.0.0.2</PackageVersion>
-        <AssemblyVersion>1.0.0.2</AssemblyVersion>
-        <FileVersion>1.0.0.2</FileVersion>
+        <TargetFramework>net9.0</TargetFramework>
+        <PackageVersion>1.0.1.0</PackageVersion>
+        <AssemblyVersion>1.0.1.0</AssemblyVersion>
+        <FileVersion>1.0.1.0</FileVersion>
         <Nullable>enable</Nullable>
         <Authors>Su8Zer0</Authors>
         <PackageProjectUrl>https://github.com/Su8Zer0/IvInfo</PackageProjectUrl>
-        <LangVersion>12</LangVersion>
+        <LangVersion>latestmajor</LangVersion>
         <UserSecretsId>c3f0a03b-a799-4f5f-ad9b-c0eb9135e8cf</UserSecretsId>
         <OutputType>Library</OutputType>
         <Title>IvInfo</Title>
@@ -17,11 +17,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AngleSharp" Version="1.1.2" />
-        <PackageReference Include="AngleSharp.XPath" Version="2.0.4" />
-        <PackageReference Include="Jellyfin.Controller" Version="10.9.9" />
-        <PackageReference Include="Jellyfin.Model" Version="10.9.9" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+        <PackageReference Include="AngleSharp" Version="1.4.0" />
+        <PackageReference Include="AngleSharp.XPath" Version="2.0.5" />
+        <PackageReference Include="FlareSolverrSharp" Version="3.0.7" />
+        <PackageReference Include="Jellyfin.Controller" Version="10.11.5" />
+        <PackageReference Include="Jellyfin.Model" Version="10.11.5" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.11" />
         <PackageReference Include="String.Similarity" Version="3.0.0"/>
     </ItemGroup>
 

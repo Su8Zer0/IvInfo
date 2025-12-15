@@ -1,9 +1,9 @@
 name: "IvInfo"
 guid: "abe0c619-a145-4890-896b-cb1089ade4fe"
 imageUrl: "https://raw.githubusercontent.com/Su8Zer0/IvInfo/master/logo.png"
-version: "1.0.0.2"
-targetAbi: "10.9.0.0"
-framework: "net8.0"
+version: "1.0.1.0"
+targetAbi: "10.11.0.0"
+framework: "net9.0"
 owner: "Su8Zer0"
 overview: "Idol video info metadata provider. Uses data from javlibrary.com, dmm.co.jp, gekiyasu.co.jp"
 description: |
@@ -18,5 +18,7 @@ artifacts:
   - "F23.StringSimilarity.dll"
   - "AngleSharp.dll"
   - "AngleSharp.XPath.dll"
+  - "FlareSolverrSharp.dll"
 changelog: |
-  fixed R18dev scraper
+  new jf version support,
+  flaresolverr support for javlibrary.com

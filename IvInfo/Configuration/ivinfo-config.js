@@ -24,6 +24,8 @@ export default function (page) {
         document.querySelector('#javlibrary_titles').checked = config.JavlibraryTitles;
         document.querySelector('#javlibrary_cast').checked = config.JavlibraryCast;
         document.querySelector('#javlibrary_tags').checked = config.JavlibraryTags;
+        document.querySelector('#javlibrary_usesolverr').checked = config.JavlibraryUseSolverr;
+        document.querySelector('#javlibrary_solverrUrl').value = config.JavlibrarySolverrUrl ?? '';
         
         document.querySelector('#dmm').checked = config.DmmScraperEnabled;
         document.querySelector('#dmm_img').checked = config.DmmImgEnabled;
@@ -90,6 +92,8 @@ export default function (page) {
         config.JavlibraryTitles = document.querySelector('#javlibrary_titles').checked;
         config.JavlibraryCast = document.querySelector('#javlibrary_cast').checked;
         config.JavlibraryTags = document.querySelector('#javlibrary_tags').checked;
+        config.JavlibraryUseSolverr = document.querySelector('#javlibrary_usesolverr').checked;
+        config.JavlibrarySolverrUrl = document.querySelector('#javlibrary_solverrUrl').value?.trim() || 'http://localhost:8191';
         
         config.DmmScraperEnabled = document.querySelector('#dmm').checked;
         config.DmmImgEnabled = document.querySelector('#dmm_img').checked;
