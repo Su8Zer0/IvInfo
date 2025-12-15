@@ -183,12 +183,14 @@ public class DmmScraper : IScraper
             }
         }
 
-        if (!string.IsNullOrEmpty(director) && !metadata.People.Exists(p => p.Name == director))
+        if (!string.IsNullOrEmpty(director) && (metadata.People?.All(p => p.Name != director) ?? true))
+        {
             metadata.AddPerson(new PersonInfo
             {
                 Name = director,
                 Type = PersonKind.Director
             });
+        }
 
         if (!string.IsNullOrEmpty(trailerUrl))
             metadata.Item.AddTrailerUrl(trailerUrl);

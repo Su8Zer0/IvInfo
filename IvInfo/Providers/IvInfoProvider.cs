@@ -22,18 +22,10 @@ namespace IvInfo.Providers;
 ///     IV Info Provider.
 /// </summary>
 // ReSharper disable once ClassNeverInstantiated.Global
-public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemoteImageProvider
+public class IvInfoProvider(IHttpClientFactory httpClientFactory, ILogger<IvInfoProvider> logger)
+    : IRemoteMetadataProvider<Movie, MovieInfo>, IRemoteImageProvider
 {
     private const string IdPattern = @".*?(\w{2,5}\d{0,2}-\w{0,2}\d{3,6}\w?).*";
-
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<IvInfoProvider> _logger;
-
-    public IvInfoProvider(IHttpClientFactory httpClientFactory, ILogger<IvInfoProvider> logger)
-    {
-        _httpClientFactory = httpClientFactory;
-        _logger = logger;
-    }
 
     public bool Supports(BaseItem item)
     {
@@ -49,17 +41,17 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
 
     public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("GetImages");
-        _logger.LogDebug("Params: Item:{Item}", item);
+        logger.LogDebug("GetImages");
+        logger.LogDebug("Params: Item:{Item}", item);
 
         var result = new List<RemoteImageInfo>();
         var language = item.GetPreferredMetadataLanguage();
         var id = item.GetProviderId(Name);
-        _logger.LogDebug("Global Id: {Id}", id);
+        logger.LogDebug("Global Id: {Id}", id);
 
         if (string.IsNullOrWhiteSpace(id))
         {
-            _logger.LogError("No global id found");
+            logger.LogError("No global id found");
             return result.OrderByLanguageDescending(language);
         }
 
@@ -73,7 +65,7 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error getting images from scraper {Scraper}\n{Error}", scraper, e.Message);
+                logger.LogError(e, "Error getting images from scraper {Scraper}\n{Error}", scraper, e.Message);
             }
 
         return result.OrderByLanguageDescending(language);
@@ -84,8 +76,8 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
     public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo,
         CancellationToken cancellationToken)
     {
-        _logger.LogDebug("GetSearchResults");
-        _logger.LogDebug("Params: Name:{Name}, Path:{Path}", searchInfo.Name, searchInfo.Path);
+        logger.LogDebug("GetSearchResults");
+        logger.LogDebug("Params: Name:{Name}, Path:{Path}", searchInfo.Name, searchInfo.Path);
         var result = new List<RemoteSearchResult>();
         var id = GetId(searchInfo);
         if (string.IsNullOrEmpty(id)) return result;
@@ -96,19 +88,19 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
             result = (List<RemoteSearchResult>)await scraper.GetSearchResults(result, searchInfo, cancellationToken);
         }
 
-        _logger.LogDebug("Found {Num} results", result.Count);
+        logger.LogDebug("Found {Num} results", result.Count);
 
         result = MergeResults(result);
 
-        _logger.LogDebug("Results after merging: {Num}", result.Count);
+        logger.LogDebug("Results after merging: {Num}", result.Count);
 
         return result;
     }
 
     public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("GetMetadata");
-        _logger.LogDebug(
+        logger.LogDebug("GetMetadata");
+        logger.LogDebug(
             "Params: Name:{Name}, Path:{Path}, Year:{Year}, IndexNumber:{IndexNumber}, ProviderIds{Ids}",
             info.Name, info.Path, info.Year, info.IndexNumber, info.ProviderIds);
         var result = new MetadataResult<Movie>
@@ -116,12 +108,12 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
             HasMetadata = false
         };
         var id = info.GetProviderId(IvInfoConstants.Name) ?? GetId(info);
-        _logger.LogDebug("Global id: {Id}", id);
+        logger.LogDebug("Global id: {Id}", id);
         if (id.Contains('|')) id = id.Split('|')[0];
 
         if (string.IsNullOrWhiteSpace(id))
         {
-            _logger.LogError("Global Id could not be determined (Name: {Name}, Path: {Path})", info.Name,
+            logger.LogError("Global Id could not be determined (Name: {Name}, Path: {Path})", info.Name,
                 info.Path);
             return result;
         }
@@ -141,7 +133,7 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "GetMetadata error, scraper {Scraper}: {Message}", scraper, e.Message);
+                logger.LogError(e, "GetMetadata error, scraper {Scraper}: {Message}", scraper, e.Message);
             }
 
         return result;
@@ -149,9 +141,9 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
 
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("GetImageResponse");
-        _logger.LogDebug("Params: url:{Url}", url);
-        return _httpClientFactory.CreateClient(NamedClient.Default).GetAsync(new Uri(url), cancellationToken);
+        logger.LogDebug("GetImageResponse");
+        logger.LogDebug("Params: url:{Url}", url);
+        return httpClientFactory.CreateClient(NamedClient.Default).GetAsync(new Uri(url), cancellationToken);
     }
 
     private static List<RemoteSearchResult> MergeResults(List<RemoteSearchResult> list)
@@ -221,11 +213,10 @@ public class IvInfoProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IRemote
         var list = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes())
             .Where(x => typeof(IScraper).IsAssignableFrom(x) && x is { IsInterface: false, IsAbstract: false })
             .ToList();
-        List<IScraper> objects = list.FindAll(t => t.GetConstructor(new[] { typeof(ILogger) }) != null)
+        List<IScraper> objects = list.FindAll(t => t.GetConstructor([typeof(ILogger)]) != null)
             .ConvertAll(t =>
             {
-                var obj = t.GetConstructor(new[] { typeof(ILogger) })!.Invoke(new object?[]
-                    { _logger }) as IScraper;
+                var obj = t.GetConstructor([typeof(ILogger)])!.Invoke([logger]) as IScraper;
                 return obj;
             })!;
         objects.Sort((x, y) => x.Priority - y.Priority);

@@ -116,7 +116,8 @@ public class GekiyasuScraper : IScraper
             ?.Text();
         var maker = doc.Body.SelectNodes(InfoXpath)
             ?.Where(node => node.Text() == MakerLbl).FirstOrDefault()?.Parent?.LastChild?.Text();
-        var cast = doc.Body.SelectNodes(InfoXpath).Where(node => node.Text() == ActressLbl).Select(node => node.Parent?.LastChild?.Text().Trim())
+        var cast = doc.Body.SelectNodes(InfoXpath).Where(node => node.Text() == ActressLbl)
+            .Select(node => node.Parent?.LastChild?.Text().Trim())
             .ToList();
 
         if (!string.IsNullOrEmpty(title) && string.IsNullOrWhiteSpace(metadata.Item.Name))
@@ -132,13 +133,15 @@ public class GekiyasuScraper : IScraper
         if (string.IsNullOrWhiteSpace(metadata.Item.ExternalId)) metadata.Item.ExternalId = scraperId;
         if (!string.IsNullOrEmpty(maker) && !metadata.Item.Studios.Contains(maker))
             metadata.Item.AddStudio(maker);
-        
-        foreach (var person in cast.Where(person => !metadata.People?.Exists(p => p.Name == person) ?? true))
+
+        foreach (var person in cast.Where(person => metadata.People?.All(p => p.Name == person) ?? true))
+        {
             metadata.AddPerson(new PersonInfo
             {
                 Name = person,
                 Type = PersonKind.Actor
             });
+        }
 
         metadata.Item.SetProviderId(Name, scraperId);
 
@@ -365,6 +368,7 @@ public class GekiyasuScraper : IScraper
                 _logger.LogError("{Name}: AgeCheck failed, form not found", Name);
                 return null;
             }
+
             foreach (var formElement in form.Elements.OfType<IHtmlInputElement>())
             {
                 formElement.Value = formElement.Name switch
@@ -386,7 +390,7 @@ public class GekiyasuScraper : IScraper
             }
 
             if (!document.Body.Text().Contains(AgeCheck)) return document;
-            
+
             _logger.LogError("{Name}: AgeCheck failed", Name);
             return null;
         }

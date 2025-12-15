@@ -60,7 +60,7 @@ public class R18DevScraper(ILogger logger) : IScraper
             Overview = $"{globalId}<br />{scraperId}",
             IndexNumber = nextIndex
         };
-        result.SetProviderId(Name, scraperId);
+        result.SetProviderId(Name, scraperId!);
         result.SetProviderId(IvInfoConstants.Name, $"{globalId}|{scraperId}");
         localResultList.Add(result);
 
@@ -91,12 +91,12 @@ public class R18DevScraper(ILogger logger) : IScraper
         FillEnMetadata(doc.RootElement, metadata);
         FillCastStaff(doc.RootElement, metadata);
 
-        var trailerUrl = GetTrailerUrl(doc.RootElement, cancellationToken);
+        var trailerUrl = GetTrailerUrl(doc.RootElement);
         if (!string.IsNullOrEmpty(trailerUrl))
             metadata.Item.AddTrailerUrl(trailerUrl);
 
         scraperId ??= doc.RootElement.GetProperty("content_id").GetString();
-        metadata.Item.SetProviderId(Name, scraperId);
+        metadata.Item.SetProviderId(Name, scraperId!);
 
         logger.LogDebug("{Name}: metadata fetching finished", Name);
         return true;
@@ -273,7 +273,8 @@ public class R18DevScraper(ILogger logger) : IScraper
             .Select(element => (element.GetProperty("name_kanji").GetString(),
                 element.GetProperty("name_romaji").GetString())).ToList();
 
-        foreach (var person in cast.Where(person => !metadata.People?.Exists(p => p.Name == person.Item1) ?? true))
+        foreach (var person in cast.Where(person => metadata.People?.All(p => p.Name != person.Item1) ?? true))
+        {
             metadata.AddPerson(new PersonInfo
             {
                 Name = person.Item1,
@@ -281,17 +282,20 @@ public class R18DevScraper(ILogger logger) : IScraper
                 Role = EngCastNames ? person.Item2 : null,
                 ImageUrl = person.Item3 != null ? string.Format(ActressImageUrl, person.Item3) : null
             });
+        }
 
-        foreach (var person in director.Where(person => !metadata.People?.Exists(p => p.Name == person.Item1) ?? true))
+        foreach (var person in director.Where(person => metadata.People?.All(p => p.Name != person.Item1) ?? true))
+        {
             metadata.AddPerson(new PersonInfo
             {
                 Name = person.Item1,
                 Type = PersonKind.Director,
                 Role = EngCastNames ? person.Item2 : null
             });
+        }
     }
 
-    private string? GetTrailerUrl(JsonElement root, CancellationToken cancellationToken)
+    private string? GetTrailerUrl(JsonElement root)
     {
         if (!Trailers)
         {
