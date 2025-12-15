@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using AngleSharp;
@@ -10,6 +11,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using AngleSharp.XPath;
+using FlareSolverrSharp;
 using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -46,6 +48,8 @@ public class JavlibraryScraper : IScraper
     private static bool EngTitles => IvInfo.Instance?.Configuration.JavlibraryTitles ?? false;
     private static bool EngCastNames => IvInfo.Instance?.Configuration.JavlibraryCast ?? false;
     private static bool EngTags => IvInfo.Instance?.Configuration.JavlibraryTags ?? false;
+    private static bool UseSolverr => IvInfo.Instance?.Configuration.JavlibraryUseSolverr ?? false;
+    private static string SolverrUrl => IvInfo.Instance?.Configuration.JavlibrarySolverrUrl ?? string.Empty;
 
     public bool Enabled => IvInfo.Instance?.Configuration.JavlibraryScraperEnabled ?? false;
     public bool ImgEnabled => IvInfo.Instance?.Configuration.JavlibraryImgEnabled ?? false;
@@ -218,22 +222,26 @@ public class JavlibraryScraper : IScraper
 
 
         if (!string.IsNullOrWhiteSpace(director) &&
-            (metadata.People == null || !metadata.People.Exists(p => p.Name == director) || IScraper.Overwriting))
+            (metadata.People == null || metadata.People.All(p => p.Name != director) || IScraper.Overwriting))
+        {
             metadata.AddPerson(new PersonInfo
             {
                 Name = director,
                 Type = PersonKind.Director
             });
+        }
 
         if (castJp == null ||
             (metadata.People != null && string.IsNullOrWhiteSpace(director) && !IScraper.Overwriting)) return null;
 
-        foreach (var person in castJp.Where(person => !metadata.People?.Exists(p => p.Name == person) ?? true))
+        foreach (var person in castJp.Where(person => !metadata.People?.Any(p => p.Name == person) ?? true))
+        {
             metadata.AddPerson(new PersonInfo
             {
                 Name = person,
                 Type = PersonKind.Actor
             });
+        }
 
         return castJp;
     }
@@ -386,16 +394,29 @@ public class JavlibraryScraper : IScraper
     private async Task<IDocument?> GetHtml(string url, CancellationToken cancellationToken)
     {
         _logger.LogDebug("{Name}: loading html from url: {Url}", Name, url);
-        var cookieProvider = new MemoryCookieProvider();
-        cookieProvider.SetCookie(new Url(DomainUrl),
-            "__cf_bm=Hu9B4Rh_fEnJtQ870COFtsI5D2o_d5NKSR0CTRCjBMU-1650621637-0-ARs0jjHbPVj2Fs0Q+pwe6xYylUgq2ITKMU7W1aRvvpib6WMMM/trVUroA1SrLLQiEOCuhG5bHQ4Ybz+qeZFyJxVQxAhAeoAy2QZQUL59JOAkfmgewtrR2Kf1x/wzXd0zjQ==");
-        cookieProvider.SetCookie(new Url(DomainUrl),
-            "cf_clearance=QuiobQ7bNToHC8orI_SCLBjzHgtviH2nPxMLIuzbC5M-1650621636-0-150");
-        var config = AngleSharp.Configuration.Default.With(cookieProvider)
-            .WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true }).WithXPath();
+
+        IDocument document;
+        var config = AngleSharp.Configuration.Default.WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true }).WithXPath();
         var context = BrowsingContext.New(config);
-        var document = await context.OpenAsync(url, cancellationToken);
-        //request.Headers.Referrer = new Uri("https://www.javlibrary.com/");
+
+        if (UseSolverr && !string.IsNullOrEmpty(SolverrUrl))
+        {
+            _logger.LogDebug("{Name}: using FlareSolverr at: {Url}", Name, SolverrUrl);
+            var handler = new ClearanceHandler(SolverrUrl)
+            {
+                MaxTimeout = 40000
+            };
+            var client = new HttpClient(handler);
+            client.Timeout = TimeSpan.FromSeconds(40);
+            var content = await client.GetStringAsync(url, cancellationToken);
+            
+            document = await context.OpenAsync(req => req.Content(content), cancellationToken);    
+        }
+        else
+        {
+            document = await context.OpenAsync(url, cancellationToken);
+        }
+        
         try
         {
             _logger.LogDebug("{Name}: GetHtml finished, status code: {Code}", Name, document.StatusCode);

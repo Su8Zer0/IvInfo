@@ -78,6 +78,26 @@
                                 <input id="javlibrary_tags" is="emby-checkbox" type="checkbox"/>
                                 <span>Fetch english tags/genres instead of japanese</span>
                             </label>
+                            <fieldset id="javlibrary_solverr">
+                                <legend>FlareSolverr configuration</legend>
+                                <label class="checkboxContainer">
+                                    <input id="javlibrary_usesolverr" is="emby-checkbox" type="checkbox"/>
+                                    <span title="This can be slow">Use FlareSolverr to pass Cloudflare*</span>
+                                </label>
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="javlibrary_solverrUrl">
+                                        FlareSolverr URL
+                                    </label>
+                                    <input id="javlibrary_solverrUrl"
+                                           is="emby-input"
+                                           type="text"
+                                           autocomplete="off"
+                                           placeholder="http://localhost:8191" />
+                                    <div class="fieldDescription">
+                                        Example: http://localhost:8191
+                                    </div>
+                                </div>
+                            </fieldset>
                         </fieldset>
                     </fieldset>
                     <fieldset>
