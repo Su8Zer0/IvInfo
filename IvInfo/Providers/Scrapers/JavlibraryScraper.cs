@@ -24,26 +24,19 @@ namespace IvInfo.Providers.Scrapers;
 
 // ReSharper disable once UnusedType.Global
 // ReSharper disable once ClassNeverInstantiated.Global
-public class JavlibraryScraper : IScraper
+public class JavlibraryScraper(ILogger logger) : IScraper
 {
     public const string Name = nameof(JavlibraryScraper);
 
     private const string DomainUrl = "https://www.javlibrary.com/";
     private const string DomainUrlEn = DomainUrl + "en/";
     private const string DomainUrlJp = DomainUrl + "ja/";
-    private const string PageUrl = "?v={0}";
+    private const string PageUrl = "{0}.html";
     private const string SearchUrl = "vl_searchbyid.php?keyword={0}";
     private const string BaseUrlJp = DomainUrlJp + SearchUrl;
     private const string NoResults = "ご指定の検索条件に合う項目がありませんでした";
     private const string MultipleResults = "品番検索結果";
     private const string NoImage = "img/noimage";
-
-    private readonly ILogger _logger;
-
-    public JavlibraryScraper(ILogger logger)
-    {
-        _logger = logger;
-    }
 
     private static bool EngTitles => IvInfo.Instance?.Configuration.JavlibraryTitles ?? false;
     private static bool EngCastNames => IvInfo.Instance?.Configuration.JavlibraryCast ?? false;
@@ -59,7 +52,7 @@ public class JavlibraryScraper : IScraper
         MovieInfo info, CancellationToken cancellationToken)
     {
         var globalId = info.GetProviderId(IvInfoConstants.Name) ?? IvInfoProvider.GetId(info);
-        _logger.LogDebug("{Name}: searching for global id: {Id}", Name, globalId);
+        logger.LogDebug("{Name}: searching for global id: {Id}", Name, globalId);
         if (string.IsNullOrEmpty(globalId)) return resultList;
 
         return await GetSearchResults(resultList, info, globalId, cancellationToken, IScraper.FirstOnly);
@@ -70,27 +63,27 @@ public class JavlibraryScraper : IScraper
     {
         var scraperId = metadata.Item.GetProviderId(Name);
         var globalId = metadata.Item.GetProviderId(IvInfoConstants.Name);
-        _logger.LogDebug("{Name}: searching for ids: {GlobalId}, {ScraperId}", Name, globalId, scraperId);
+        logger.LogDebug("{Name}: searching for ids: {GlobalId}, {ScraperId}", Name, globalId, scraperId);
         if (globalId == null && scraperId == null)
         {
-            _logger.LogError("Could not determine any id");
+            logger.LogError("Could not determine any id");
             return false;
         }
 
         IDocument? docJp;
         if (scraperId == null)
         {
-            _logger.LogDebug("{Name}: no scraper id, searching for global id: {Id}", Name, globalId);
+            logger.LogDebug("{Name}: no scraper id, searching for global id: {Id}", Name, globalId);
             if (globalId == null)
             {
-                _logger.LogError("Could not determine global id");
+                logger.LogError("Could not determine global id");
                 return false;
             }
 
             var results = await GetSearchResults(Array.Empty<RemoteSearchResult>(), info, globalId, cancellationToken);
             if (results.Count > 1 && !IScraper.FirstOnly)
             {
-                _logger.LogDebug("{Name}: multiple results found and selecting first result not enabled - aborting",
+                logger.LogDebug("{Name}: multiple results found and selecting first result not enabled - aborting",
                     Name);
                 return false;
             }
@@ -102,13 +95,13 @@ public class JavlibraryScraper : IScraper
         }
         else
         {
-            _logger.LogDebug("{Name}: searching for scraperid: {Id}", Name, scraperId);
+            logger.LogDebug("{Name}: searching for scraperid: {Id}", Name, scraperId);
             docJp = await GetSingleResult(scraperId, cancellationToken);
         }
 
         if (string.IsNullOrEmpty(docJp?.Body?.Text()))
         {
-            _logger.LogDebug("{Name}: searching returned empty page, error?", Name);
+            logger.LogDebug("{Name}: searching returned empty page, error?", Name);
             return false;
         }
 
@@ -120,32 +113,32 @@ public class JavlibraryScraper : IScraper
 
         metadata.Item.SetProviderId(Name, scraperId);
 
-        _logger.LogDebug("{Name}: metadata fetching finished", Name);
+        logger.LogDebug("{Name}: metadata fetching finished", Name);
         return true;
     }
 
     public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken,
         ImageType imageType = ImageType.Primary)
     {
-        _logger.LogDebug("{Name}: searching for image {ImageType}", Name, imageType);
+        logger.LogDebug("{Name}: searching for image {ImageType}", Name, imageType);
         var result = new List<RemoteImageInfo>();
 
         if (!HandledImageTypes().Contains(imageType))
         {
-            _logger.LogDebug("{Name}: {ImageType} image type not handled", Name, imageType);
+            logger.LogDebug("{Name}: {ImageType} image type not handled", Name, imageType);
             return result;
         }
 
         if (item.ImageInfos.Any(i => i.Type == imageType))
         {
-            _logger.LogDebug("{Name}: {ImageType} image already exists, not overwriting", Name, imageType);
+            logger.LogDebug("{Name}: {ImageType} image already exists, not overwriting", Name, imageType);
             return result;
         }
 
         var scraperId = item.GetProviderId(Name);
         if (string.IsNullOrEmpty(scraperId))
         {
-            _logger.LogDebug("{Name}: No scraper id", Name);
+            logger.LogDebug("{Name}: No scraper id", Name);
             return result;
         }
 
@@ -161,7 +154,7 @@ public class JavlibraryScraper : IScraper
         result.Add(new RemoteImageInfo
             { Url = url, Type = imageType, ProviderName = Name });
 
-        _logger.LogDebug("{Name}: image searching finished", Name);
+        logger.LogDebug("{Name}: image searching finished", Name);
         return result;
     }
 
@@ -301,7 +294,7 @@ public class JavlibraryScraper : IScraper
             var nodeCollection = doc.Body.SelectNodes("//div[@class='videos']/div[@class='video']/a");
             foreach (var node in nodeCollection.OfType<IHtmlAnchorElement>())
             {
-                var scraperId = node.Href.Split("=")[1];
+                var scraperId = node.Href[(node.Href.LastIndexOf('/') + 1)..].Replace(".html", "");
                 var foundGlobalId = node.SelectSingleNode("div").Text();
                 var title = node.LastChild?.Text().Replace(globalId, "").Trim();
                 var imgUrl = (node.SelectSingleNode("img") as IHtmlImageElement)?.Source;
@@ -344,7 +337,7 @@ public class JavlibraryScraper : IScraper
             localResultList.Add(result);
         }
 
-        _logger.LogDebug("{Name}: Found {Num} results", Name, localResultList.Count);
+        logger.LogDebug("{Name}: Found {Num} results", Name, localResultList.Count);
 
         return localResultList;
     }
@@ -359,7 +352,7 @@ public class JavlibraryScraper : IScraper
     private async Task<(bool, IDocument?)> GetSearchResultsOrResultPage(string globalId,
         CancellationToken cancellationToken)
     {
-        _logger.LogDebug("{Name}: searching for globalid: {Id}", Name, globalId);
+        logger.LogDebug("{Name}: searching for globalid: {Id}", Name, globalId);
         if (string.IsNullOrEmpty(globalId)) return (false, null);
         var url = string.Format(BaseUrlJp, globalId);
         var doc = await GetHtml(url, cancellationToken);
@@ -377,7 +370,7 @@ public class JavlibraryScraper : IScraper
     /// <returns>page for id</returns>
     private async Task<IDocument?> GetSingleResult(string scraperId, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("{Name}: getting page for scraper id: {Id}", Name, scraperId);
+        logger.LogDebug("{Name}: getting page for scraper id: {Id}", Name, scraperId);
         if (string.IsNullOrEmpty(scraperId)) return null;
         var url = DomainUrlJp + string.Format(PageUrl, scraperId);
         var doc = await GetHtml(url, cancellationToken);
@@ -386,14 +379,15 @@ public class JavlibraryScraper : IScraper
 
     private string GetScraperId(IDocument doc)
     {
-        _logger.LogDebug("{Name}: parsing scraperid", Name);
-        return (doc.Body.SelectSingleNode("//div[@id='video_title']/*/a") as IHtmlAnchorElement)?.Href.Split("=")[1] ??
+        logger.LogDebug("{Name}: parsing scraperid", Name);
+        var node = doc.Body.SelectSingleNode("//div[@id='video_title']/*/a") as IHtmlAnchorElement;
+        return node?.Href[(node.Href.LastIndexOf('/') + 1)..].Replace(".html", "") ??
                string.Empty;
     }
 
     private async Task<IDocument?> GetHtml(string url, CancellationToken cancellationToken)
     {
-        _logger.LogDebug("{Name}: loading html from url: {Url}", Name, url);
+        logger.LogDebug("{Name}: loading html from url: {Url}", Name, url);
 
         IDocument document;
         var config = AngleSharp.Configuration.Default.WithDefaultLoader(new LoaderOptions { IsResourceLoadingEnabled = true }).WithXPath();
@@ -401,7 +395,7 @@ public class JavlibraryScraper : IScraper
 
         if (UseSolverr && !string.IsNullOrEmpty(SolverrUrl))
         {
-            _logger.LogDebug("{Name}: using FlareSolverr at: {Url}", Name, SolverrUrl);
+            logger.LogDebug("{Name}: using FlareSolverr at: {Url}", Name, SolverrUrl);
             var handler = new ClearanceHandler(SolverrUrl)
             {
                 MaxTimeout = 40000
@@ -419,14 +413,14 @@ public class JavlibraryScraper : IScraper
         
         try
         {
-            _logger.LogDebug("{Name}: GetHtml finished, status code: {Code}", Name, document.StatusCode);
+            logger.LogDebug("{Name}: GetHtml finished, status code: {Code}", Name, document.StatusCode);
             return document.StatusCode == HttpStatusCode.OK
                 ? document
                 : null;
         }
         catch (Exception e)
         {
-            _logger.LogError("{Name}: could not load page {Url}\n{Message}", Name, url, e.Message);
+            logger.LogError("{Name}: could not load page {Url}\n{Message}", Name, url, e.Message);
             return null;
         }
     }
