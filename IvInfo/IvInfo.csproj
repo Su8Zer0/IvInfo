@@ -20,9 +20,9 @@
         <PackageReference Include="AngleSharp" Version="1.4.0" />
         <PackageReference Include="AngleSharp.XPath" Version="2.0.5" />
         <PackageReference Include="FlareSolverrSharp" Version="3.0.7" />
-        <PackageReference Include="Jellyfin.Controller" Version="10.11.5" />
-        <PackageReference Include="Jellyfin.Model" Version="10.11.5" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.11" />
+        <PackageReference Include="Jellyfin.Controller" Version="10.11.6" />
+        <PackageReference Include="Jellyfin.Model" Version="10.11.6" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.12" />
         <PackageReference Include="String.Similarity" Version="3.0.0"/>
     </ItemGroup>
 
